@@ -4,7 +4,7 @@
 
 ![PCLCustomHelpBuilder | PCL自定义帮助构建器](https://img.shields.io/badge/github-PCLCustomHelpBuilder-blue?logo=github)
 ![By wzyaeu | Powered by PCL, PCL2-NewsHomepage](https://img.shields.io/badge/By%20wzyaeu-Powered%20by%20PCL,%20PCL2--NewsHomepage-357ee2)
-![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY-NC-SA%204.0-3cccb0)
+![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License--CC%20BY--NC--SA%204.0-3cccb0)
 
 ## 介绍
 
