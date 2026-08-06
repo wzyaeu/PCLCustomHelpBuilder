@@ -1,8 +1,12 @@
+![PCLCustomHelpBuilderLogo](https://github.com/wzyaeu/PCLCustomHelpBuilder/blob/main/image/logo.png)
+
+[![PCLCustomHelpBuilder](https://img.shields.io/badge/github-PCLCustomHelpBuilder-blue?logo=github)](https://github.com/wzyaeu/PCLCustomHelpBuilder#PCLCustomHelpBuilder)
+
 # PCLCustomHelpBuilder
 
 PCLCustomHelpBuilder | PCL自定义帮助构建器
 
-By Wzyaeu | Powered by PCL
+By Wzyaeu | Powered by PCL, PCL2-NewsHomepage
 
 ## 介绍
 
@@ -26,4 +30,4 @@ By Wzyaeu | Powered by PCL
 
 ## 协议
 
-本项目使用 CC BY-NC-SA 3.0 协议。
+本项目使用 CC BY-NC-SA 4.0 协议。
