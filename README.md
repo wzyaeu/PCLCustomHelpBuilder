@@ -16,7 +16,7 @@ By Wzyaeu | Powered by PCL
 
 ## 使用
 
-...
+[使用](https://github.com/wzyaeu/PCLCustomHelpBuilder/blob/main/docs/desc.md)
 
 ## 引用
 
