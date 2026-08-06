@@ -1,0 +1,1 @@
+<Border Background="{DynamicResource ColorBrush4}" CornerRadius="5" Margin="{indent},5,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="auto"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="auto"/></Grid.ColumnDefinitions><TextBlock Margin="5" VerticalAlignment="Center" FontSize="15" Foreground="{DynamicResource ColorBrush7}" Text="{name}"/></Grid></Border>

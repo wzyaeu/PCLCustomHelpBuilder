@@ -1,0 +1,1 @@
+<List Style="{StaticResource {x:Type List}}"> {items} </List>

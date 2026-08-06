@@ -1,0 +1,1 @@
+<local:MyImage Source="{image}" FallbackSource="pack://application:,,,/images/Icons/NoIcon.png" ToolTip="{title}"/>

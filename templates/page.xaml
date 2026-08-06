@@ -1,0 +1,405 @@
+<Grid>
+    <Grid.Resources>
+        <Style TargetType="ListItem">
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush1}"/>
+            <Setter Property="Margin"
+                    Value="0,4"/>
+        </Style>
+        <Style TargetType="List">
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush3}"/>
+            <Setter Property="Margin"
+                    Value="20,5,0,5"/>
+            <Setter Property="MarkerStyle"
+                    Value="1"/>
+            <Setter Property="Padding"
+                    Value="0"/>
+        </Style>
+        <Style x:Key="NumberList"
+               TargetType="List">
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush3}"/>
+            <Setter Property="Margin"
+                    Value="20,5,0,5"/>
+            <Setter Property="MarkerStyle"
+                    Value="9"/>
+            <Setter Property="Padding"
+                    Value="0"/>
+        </Style>
+        <Style TargetType="Paragraph">
+            <Setter Property="LineHeight"
+                    Value="12"/>
+            <Setter Property="TextIndent"
+                    Value="0"/>
+            <Setter Property="Margin"
+                    Value="0,5"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="TextWrapping"
+                    Value="Wrap"/>
+            <Setter Property="HorizontalAlignment"
+                    Value="Left"/>
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush1}"/>
+        </Style>
+        <Style TargetType="FlowDocument">
+            <Setter Property="FontFamily"
+                    Value="Microsoft YaHei UI"/>
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="TextAlignment"
+                    Value="Left"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush1}"/>
+        </Style>
+        <Style TargetType="FlowDocumentScrollViewer">
+            <Setter Property="IsSelectionEnabled"
+                    Value="False"/>
+            <Setter Property="VerticalScrollBarVisibility"
+                    Value="Hidden"/>
+            <Setter Property="Margin"
+                    Value="0"/>
+        </Style>
+        <Style  TargetType="TextBox"
+                x:Key="InlineCode">
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="IsReadOnly"
+                    Value="True"/>
+            <Setter Property="Margin"
+                    Value="2,0,2,-4"/>
+            <Setter Property="FontFamily"
+                    Value="Consolas"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush4}"/>
+            <Setter Property="Height"
+                    Value="18"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{DynamicResource ColorBrush6}"
+                                Opacity="0.9"
+                                BorderBrush="{DynamicResource ColorBrush4}"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="4,0.2">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="false"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <ControlTemplate  x:Key="CodeBlock"
+                          TargetType="ContentControl">
+            <Border CornerRadius="5"
+                    Background="{DynamicResource ColorBrush6}"
+                    Padding="0"
+                    Margin="0,5"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="1">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="CodeBlockWithLanguage"
+                          TargetType="ContentControl">
+            <StackPanel Margin="0,5">
+                <Border CornerRadius="5,5,0,0"
+                        Background="{DynamicResource ColorBrush5}"
+                        Padding="0"
+                        BorderBrush="{DynamicResource ColorBrush4}"
+                        BorderThickness="1,1,1,0">
+                    <TextBlock Text="{TemplateBinding Tag}"
+                               Margin="10,4"
+                               FontSize="15"
+                               Foreground="{DynamicResource ColorBrush8}"/>
+                </Border>
+                <Border CornerRadius="0,0,5,5"
+                        Background="{DynamicResource ColorBrush6}"
+                        Padding="0"
+                        BorderBrush="{DynamicResource ColorBrush4}"
+                        BorderThickness="1,0,1,1">
+                    <ContentPresenter/>
+                </Border>
+            </StackPanel>
+        </ControlTemplate>
+        <ControlTemplate x:Key="Table"
+                         TargetType="HeaderedContentControl">
+            <StackPanel Margin="0,5">
+                <Border CornerRadius="5,5,0,0">
+                    <ContentPresenter Content="{TemplateBinding Header}"/>
+                </Border>
+
+                <Border CornerRadius="0,0,5,5">
+                    <ContentPresenter/>
+                </Border>
+            </StackPanel>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableHeadLeft"
+                          TargetType="ContentControl">
+            <Border CornerRadius="5,0,0,0"
+                    Background="{DynamicResource ColorBrush5}"
+                    Padding="10,4"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="1,1,0,0">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableHead"
+                          TargetType="ContentControl">
+            <Border Background="{DynamicResource ColorBrush5}"
+                    Padding="10,4"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="0,1,0,0">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableHeadRight"
+                          TargetType="ContentControl">
+            <Border CornerRadius="0,5,0,0"
+                    Background="{DynamicResource ColorBrush5}"
+                    Padding="10,4"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="0,1,1,0">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBody"
+                          TargetType="ContentControl">
+            <Border Background="{DynamicResource ColorBrush6}"
+                    Padding="10,4">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBodyMiddleLeft"
+                          TargetType="ContentControl">
+            <Border
+                Background="{DynamicResource ColorBrush6}"
+                Padding="10,4"
+                BorderBrush="{DynamicResource ColorBrush4}"
+                BorderThickness="1,0,0,0">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBodyMiddleRight"
+                          TargetType="ContentControl">
+            <Border
+                Background="{DynamicResource ColorBrush6}"
+                Padding="10,4"
+                BorderBrush="{DynamicResource ColorBrush4}"
+                BorderThickness="0,0,1,0">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBodyLeft"
+                          TargetType="ContentControl">
+            <Border CornerRadius="0,0,0,5"
+                    Background="{DynamicResource ColorBrush6}"
+                    Padding="10,4"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="1,0,0,1">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBodyBottom"
+                          TargetType="ContentControl">
+            <Border
+                Background="{DynamicResource ColorBrush6}"
+                Padding="10,4"
+                BorderBrush="{DynamicResource ColorBrush4}"
+                BorderThickness="0,0,0,1">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="TableBodyRight"
+                          TargetType="ContentControl">
+            <Border CornerRadius="0,0,5,0"
+                    Background="{DynamicResource ColorBrush6}"
+                    Padding="10,4"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    BorderThickness="0,0,1,1">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="Quote"
+                          TargetType="ContentControl">
+
+            <Border CornerRadius="5"
+                    BorderBrush="{DynamicResource ColorBrush4}"
+                    Background="{DynamicResource ColorBrush6}"
+                    BorderThickness="5,1,1,1">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <ControlTemplate  x:Key="importantQuote"
+                          TargetType="ContentControl">
+            <Border CornerRadius="5"
+                    Background="#33ba5454"
+                    BorderBrush="#ba5454"
+                    BorderThickness="5,0,0,0"
+                    Margin="0,5">
+                <ContentPresenter/>
+            </Border>
+        </ControlTemplate>
+        <Style x:Key="Hr"
+               TargetType="Section">
+            <Setter Property="Margin"
+                    Value="0,10"/>
+            <Setter Property="BorderThickness"
+                    Value="0,1.5,0,0"/>
+            <Setter Property="BorderBrush"
+                    Value="{DynamicResource ColorBrush4}"/>
+            <Setter Property="FontSize"
+                    Value="4"/>
+        </Style>
+        <Style x:Key="Hl"
+               TargetType="Section">
+            <Setter Property="Margin"
+                    Value="0,4,0,5"/>
+            <Setter Property="BorderThickness"
+                    Value="0,1.5,0,0"/>
+            <Setter Property="BorderBrush"
+                    Value="{DynamicResource ColorBrush5}"/>
+            <Setter Property="FontSize"
+                    Value="4"/>
+        </Style>
+        <Style x:Key="H1"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="24"/>
+            <Setter Property="Margin"
+                    Value="0,10,0,0"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush3}"/>
+        </Style>
+        <Style x:Key="H2"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="22"/>
+            <Setter Property="Margin"
+                    Value="0,10,0,0"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush3}"/>
+        </Style>
+        <Style x:Key="H3"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="18"/>
+            <Setter Property="Margin"
+                    Value="0,10,0,0"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush4}"/>
+        </Style>
+        <Style x:Key="H4"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="16"/>
+            <Setter Property="Margin"
+                    Value="0,10,0,0"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush4}"/>
+        </Style>
+        <Style x:Key="H5"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="Margin"
+                    Value="0,8,0,0"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush4}"/>
+        </Style>
+        <Style x:Key="H6"
+               TargetType="Paragraph">
+            <Setter Property="FontSize"
+                    Value="12"/>
+            <Setter Property="Margin"
+                    Value="0,8,0,0"/>
+            <Setter Property="Foreground"
+                    Value="{DynamicResource ColorBrush4}"/>
+        </Style>
+    </Grid.Resources>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="auto"/>
+        <RowDefinition Height="auto"/>
+    </Grid.RowDefinitions>
+    <local:MyCard Margin="4,4,4,3">
+        <StackPanel Margin="5"
+                    Orientation="Horizontal">
+            <Border Background="{DynamicResource ColorBrush4}"
+                    CornerRadius="5">
+                <TextBlock Margin="5,0,5,0"
+                           VerticalAlignment="Center"
+                           FontSize="18"
+                           Foreground="{DynamicResource ColorBrush7}"
+                           Text="{name}"/>
+            </Border>
+            <local:MyIconTextButton
+                Margin="2"
+                Height="35"
+                VerticalAlignment="Center"
+                Text="刷新"
+                LogoScale="1"
+                Logo="M841.140212 512.013257c0 181.498884-147.641328 329.140212-329.140212 329.140212s-329.140212-147.641328-329.140212-329.140212c0-175.391505 137.999348-318.746696 311.068586-328.211305l0 99.641714c0 3.249345 1.749929 6.286578 4.571392 7.928622 1.428103 0.821022 3.000662 1.214162 4.571392 1.214162s3.143289-0.39314 4.571392-1.214162l237.569748-137.141755c2.821463-1.642044 4.571392-4.679277 4.571392-7.928622s-1.749929-6.286578-4.571392-7.928622l-237.569748-137.141755c-2.856206-1.642044-6.286578-1.642044-9.142784 0-2.821463 1.642044-4.571392 4.679277-4.571392 7.928622l0 101.499527C280.537631 120.195606 109.717518 296.300248 109.717518 512.013257c0 221.820389 180.462093 402.282482 402.282482 402.282482s402.282482-180.462093 402.282482-402.282482L841.140212 512.013257z">
+                <local:CustomEventService.Events>
+                    <local:CustomEventCollection>
+                        <local:CustomEvent Type="刷新页面"/>
+                    </local:CustomEventCollection>
+                </local:CustomEventService.Events>
+            </local:MyIconTextButton>
+            <local:MyIconTextButton
+                Grid.Column="1"
+                Margin="2"
+                Height="35"
+                VerticalAlignment="Center"
+                Text="主页"
+                EventType="刷新主页"
+                EventData="aaa"
+                LogoScale="1"
+                Logo="M738.463 917.838h-162.506c-16.142 0-29.127-12.986-29.127-29.127v-252.435c0-0.122-0.242-0.485-0.485-0.485h-76.337c-0.122 0-0.485 0.242-0.485 0.485v252.435c0 16.142-12.986 29.127-29.127 29.127h-162.384c-48.667 0-88.231-39.564-88.231-88.231v-256.561h-17.718c-27.428 0-52.065-16.262-62.988-41.506-10.801-25.122-5.703-54.25 13.229-74.153l296.975-313.602c24.030-25.364 57.769-39.929 92.721-39.929s68.691 14.563 92.721 39.929l296.854 313.602c18.811 19.903 24.030 49.030 13.229 74.153s-35.559 41.506-62.988 41.506h-25.122v256.561c0 48.667-39.564 88.231-88.231 88.231zM605.085 859.583h133.378c16.506 0 29.977-13.471 29.977-29.977v-285.689c0-16.142 12.986-29.127 29.127-29.127h54.25c3.155 0 7.524-1.578 9.467-6.19s0.122-8.86-1.942-11.165l-297.097-313.602c-13.229-13.957-31.069-21.724-50.366-21.724s-37.137 7.646-50.366 21.724l-296.975 313.602c-2.185 2.306-4.005 6.554-1.942 11.165 1.942 4.611 6.311 6.19 9.467 6.19h46.846c16.142 0 29.127 12.986 29.127 29.127v285.689c0 16.506 13.471 29.977 29.977 29.977h133.378v-223.308c0-32.404 26.336-58.74 58.74-58.74h76.337c32.404 0 58.74 26.336 58.74 58.74v223.308z"/>
+        </StackPanel>
+    </local:MyCard>
+    <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"
+                              MinWidth="90"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+            <local:MyCard Title="目录"
+                          Margin="4"
+                          CanSwap="True">
+                <StackPanel Margin="10,30,10,10">
+                    {contents}
+                </StackPanel>
+            </local:MyCard>
+        </StackPanel>
+        <StackPanel
+            Grid.Column="1">
+            <local:MyCard Margin="4">
+                <StackPanel Margin="5">
+                    <FlowDocumentScrollViewer>
+                        <FlowDocument>
+                            {body}
+                        </FlowDocument>
+                    </FlowDocumentScrollViewer>
+                </StackPanel>
+            </local:MyCard>
+            {footer}
+        </StackPanel>
+    </Grid>
+</Grid>

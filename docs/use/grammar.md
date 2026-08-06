@@ -1,0 +1,67 @@
+---
+name: "支持的语法"
+---
+
+# 支持的语法
+
+## 支持语法
+
+PCLCustomHelpBuilder支持以下语法：
+
+- 标题语法
+- 段落语法
+  - 换行语法
+  - 强调语法
+    - 粗体、斜体、斜粗体
+  - 删除线语法
+  - 代码语法
+- 引用块语法
+- 列表语法
+- 代码块语法
+  - 语言标识
+- 分隔线语法
+- 链接语法
+- 图片语法
+- 转义字符语法
+
+## 不支持语法
+
+PCLCustomHelpBuilder不支持以下语法写法：
+
+- 语法高亮
+- 链接图片
+- 内嵌HTML
+- 其他语法都会转为普通段落
+
+## 扩展语法
+
+PCLCustomHelpBuilder有以下的扩展语法：
+
+- 在链接前写上`help!`即可打开对应链接的PCL帮助页面。如[打开PCLBangumiPage](help!https://bangumi.p.kaphia.qzz.io/Custom.json)
+- 在链接前写上`jump!`即可打开本帮助中目录对应位置的页面。如[打开协议](jump!协议)、[打开支持的语法](jump!使用/支持的语法)
+- 在链接前写上`event!`并使用`event!{EventType}!{EventData}`格式的链接即可生成一个对应 EventType 和 EventData 的按钮，如[打开一个弹窗](event!弹出窗口!标题|内容)。链接也只会使用前两个感叹号分割，如[打开一个感叹号弹窗](event!弹出窗口!!!!!!!!!!!!!!!|!!!!!!!!!!!!!!)
+- 将代码块的语言标注成xaml并在开头写`<!-- pcl -->`。则直接作为控件代码显示。
+
+```xaml
+<!-- pcl -->
+<local:MyCard Margin="5">
+    <StackPanel Margin="10">
+        <TextBlock
+            Margin="0,5"
+            FontSize="13"
+            Text="这一段将不会作为代码块使用，而是作为控件插入到文档中"/>
+        <TextBlock
+            Margin="0,5"
+            FontSize="13"
+            Text="此方式的代码也需要转义"/>
+        <TextBlock
+            Margin="0,5"
+            FontSize="13"
+            Text="因为语法原因，此方式所创建的控件会有一层 &lt;/StackPanel&gt; 嵌套"/>
+    </StackPanel>
+</local:MyCard>
+```
+
+```xaml
+<!-- pcl --><!-- 甚至可以在文档里写注释 -->
+```
