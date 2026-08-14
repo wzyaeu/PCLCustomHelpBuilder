@@ -1,6 +1,1 @@
-<local:MyCard Margin="4">
-    <StackPanel Margin="10">
-        <TextBlock Text="本项目由 PCLCustomHelpBuilder 驱动"/>
-        <TextBlock Text="PCLCustomHelpBuilder 版本: {ver}"/>
-    </StackPanel>
-</local:MyCard>
+<local:MyCard Margin="4"><StackPanel Margin="10"><TextBlock Text="本项目由 PCLCustomHelpBuilder 驱动"/><TextBlock Text="PCLCustomHelpBuilder 版本: {ver}"/></StackPanel></local:MyCard>

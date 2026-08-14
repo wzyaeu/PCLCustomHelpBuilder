@@ -80,6 +80,8 @@ def load_contents():
         contents_path = os.path.join(BASE_PATH, 'docs', path)
         items = os.listdir(contents_path)
         for item in items:
+            if item.startswith('.'):
+                continue
             item_path = os.path.join(contents_path, item)
             if os.path.isfile(item_path) and item.endswith('.md'):
                 if item == 'index.md' and path != '':
@@ -190,52 +192,42 @@ def build_file():
                     case 'link':
                         # 网址链接
                         if token['attrs']['url'].startswith('http://') or token['attrs']['url'].startswith('https://'):
-                            t = f'body/para/link'
-                            url = token['attrs']['url']
-                            sp = False
+                            t = f'body/para/event_btn'
+                            url = ['打开网页', token['attrs']['url']]
                         # public/内文件链接
                         elif token['attrs']['url'].startswith('/'):
-                            t = f'body/para/link'
-                            url = os.path.join(OUTPUT_URL, 'public', token['attrs']['url'])
-                            sp = False
+                            t = f'body/para/event_btn'
+                            url = ['打开网页', os.path.join(OUTPUT_URL, 'public', token['attrs']['url'])]
                         # 帮助页
                         elif token['attrs']['url'].startswith('help!'):
                             t = f'body/para/event_btn'
                             url = ['打开帮助', token['attrs']['url'][5:]]
-                            sp = True
                         # 自定义功能按钮
                         elif token['attrs']['url'].startswith('event!'):
                             t = f'body/para/event_btn'
                             url = unquote(token['attrs']['url'])[6:].split('!', maxsplit=1)
-                            sp = True
                         # 本帮助内跳转
                         elif token['attrs']['url'].startswith('jump!'):
                             t = f'body/para/event_btn'
                             url = ['打开帮助', OUTPUT_URL+token['attrs']['url'][5:]+'.json']
-                            sp = True
                         # 复制文本
                         else:
                             t = f'body/para/event_btn'
                             url = ['复制文本', token['attrs']['url']]
-                            sp = True
                         load_template(t)
                         para += replaces(templates[t],{
                             'type':url[0],
                             'data':url[1],
-                            'content': data_to_text(token['children'])
-                        } if sp  else {
-                            'url':token['attrs']['url'],
-                            'title':' '+token['attrs'].get('title','') if 'title' in token['attrs'] else '',
-                            'content': data_to_text(token['children'])
+                            'content': analysis_para(token['children'])
                         })
                     case 'image':
                         t = f'body/para/image'
                         load_template(t)
                         url = token['attrs']['url']
                         if url.startswith('/'):
-                            url = os.path.join(OUTPUT_URL, 'public', url)
+                            url = os.path.join(OUTPUT_URL, 'public', url[1:]).replace('\\', '/')
                         para += replaces(templates[t],{
-                            'image':token['attrs']['url'],
+                            'image':url,
                             'title': data_to_text(token['children'])
                         })
             return para
