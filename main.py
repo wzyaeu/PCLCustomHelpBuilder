@@ -118,7 +118,7 @@ def build_file():
     logging.info('开始生成输出文件')
     shutil.rmtree('output',ignore_errors=True)
     os.makedirs('output', exist_ok=True)
-    markdown = mistune.create_markdown(renderer='ast', plugins=['table'])
+    markdown = mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
     def analysis_contents(contents=base_contents, namepath=''):
         global entrance
@@ -173,6 +173,12 @@ def build_file():
                         para += escape_xaml(token['raw'])
                     case 'emphasis':
                         t = f'body/para/italic'
+                        load_template(t)
+                        para += replaces(templates[t],{
+                            'content':analysis_para(token['children'])
+                        })
+                    case 'strikethrough':
+                        t = f'body/para/strikethrough'
                         load_template(t)
                         para += replaces(templates[t],{
                             'content':analysis_para(token['children'])

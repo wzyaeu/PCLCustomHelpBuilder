@@ -2,5 +2,5 @@ log/
 output/
 public/
 test/
-config.json
+/config.json
 !docs/*
