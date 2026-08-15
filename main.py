@@ -196,30 +196,30 @@ def build_file():
                             'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:], no_cb=True)
                         })
                     case 'link':
+                        url = unquote(token['attrs']['url'])
                         # 网址链接
-                        if token['attrs']['url'].startswith('http://') or token['attrs']['url'].startswith('https://'):
+                        if url.startswith('http://') or url.startswith('https://'):
                             t = f'body/para/event_btn'
-                            url = ['打开网页', token['attrs']['url']]
-                        # public/内文件链接
-                        elif token['attrs']['url'].startswith('/'):
-                            t = f'body/para/event_btn'
-                            url = ['打开网页', os.path.join(OUTPUT_URL, 'public', token['attrs']['url'])]
+                            url = ['打开网页', url]
                         # 帮助页
-                        elif token['attrs']['url'].startswith('help!'):
+                        elif url.startswith('help!'):
                             t = f'body/para/event_btn'
-                            url = ['打开帮助', token['attrs']['url'][5:]]
+                            url = ['打开帮助', url[5:]]
                         # 自定义功能按钮
-                        elif token['attrs']['url'].startswith('event!'):
+                        elif url.startswith('event!'):
                             t = f'body/para/event_btn'
-                            url = unquote(token['attrs']['url'])[6:].split('!', maxsplit=1)
+                            url = url[6:].split('!', maxsplit=1)
                         # 本帮助内跳转
-                        elif token['attrs']['url'].startswith('jump!'):
+                        elif url.startswith('jump!'):
                             t = f'body/para/event_btn'
-                            url = ['打开帮助', OUTPUT_URL+token['attrs']['url'][5:]+'.json']
+                            url = ['打开帮助', OUTPUT_URL+url[5:]+'.json']
+                        elif url.startswith('/'):
+                            t = f'body/para/event_btn'
+                            url = ['打开帮助', OUTPUT_URL+url[1:]+'.json']
                         # 复制文本
                         else:
                             t = f'body/para/event_btn'
-                            url = ['复制文本', token['attrs']['url']]
+                            url = ['复制文本', url]
                         load_template(t)
                         para += replaces(templates[t],{
                             'type':url[0],
@@ -391,15 +391,22 @@ def build_file():
 
         # 层级下生成文件
         occupied_name = []
-        for content in contents:
-            if content['name'] in occupied_name:
-                logging.error(f'contents 文档名重复: {content['name']}')
+        for content in (contents if namepath != '' else contents + [{
+            'name': NAME+' 目录', 
+            'file': False, 
+            'mainpage': True, 
+            'sub': base_contents
+        }]):
+            doc_name = content.get('title', content['name'])
+            
+            if doc_name in occupied_name:
+                logging.error(f'contents 文档名重复: {doc_name}')
                 exit()
-            if content['name'] == 'Custom':
-                logging.error(f'contents 禁止使用的文档名: {content['name']}')
+            if doc_name == 'Custom':
+                logging.error(f'contents 禁止使用的文档名: {doc_name}')
                 exit()
-            logging.info(f'生成文件: {content['name']}')
-            occupied_name.append(content['name'])
+            logging.info(f'生成文件: {doc_name}')
+            occupied_name.append(doc_name)
 
             load_template('page')
             if content['file'] != False:
@@ -414,12 +421,29 @@ def build_file():
                 with open(doc_file_path,'r',encoding='utf-8') as f:
                     raw_data = frontmatter.load(f).content
             else:
+                def subdoc(*a, **kwa):
+                    def _(docdata, path=''):
+                        sdoutput = []
+                        for sd in docdata.get('sub',[]):
+                            sdoutput.append(f'- [{sd['name']}](jump!{namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name']})')
+                            if 'sub' in sd:
+                                sdoutput.append(_(sd, path+sd['name']+'/'))
+                        return sdoutput
+                    def join_with_indent(items, depth=0) :
+                        lines = []
+                        for item in items:
+                            if isinstance(item, str):
+                                lines.append(" " * (depth * 2) + item)
+                            elif isinstance(item, list):
+                                lines.append(join_with_indent(item, depth + 1))
+                        return "\n".join(lines)
+                    sdoutput = join_with_indent(_(*a, **kwa))
+                    return sdoutput
+
                 raw_data = '\n'.join((
-                    f'# {content['name']}',
+                    f'# {doc_name}',
                     f'',
-                    *[
-                        f'- [{sub['name']}](help!{OUTPUT_URL+namepath+content['name']+'/'+sub['name']+'.json'})' for sub in content.get('sub',[])
-                    ],
+                    subdoc(content)
                 ))
             
             body = analysis_level(markdown(raw_data))
@@ -431,19 +455,20 @@ def build_file():
             })
 
             page = replaces(templates['page'],{
-                'contents':contents_xaml(namepath+content['name']),
+                'contents':contents_xaml(namepath+(doc_name if not content.get('mainpage') else '')),
                 'body':body,
                 'name':NAME,
                 'footer':footer
             })
 
-            os.makedirs(os.path.join(BASE_PATH, 'output', namepath), exist_ok=True)
-            with open(os.path.join(BASE_PATH, 'output', namepath+content['name']+'.xaml'), 'w', encoding='utf-8') as f:
-                f.write(page)
-            with open(os.path.join(BASE_PATH, 'output', namepath+content['name']+'.json'), 'w', encoding='utf-8') as f:
-                f.write(json.dumps({'Title':f'{NAME} | {content['name']}'}))
-
-            if content.get('entrance'):
+            if not content.get('mainpage'):
+                os.makedirs(os.path.join(BASE_PATH, 'output', namepath), exist_ok=True)
+                with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'.xaml'), 'w', encoding='utf-8') as f:
+                    f.write(page)
+                with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'.json'), 'w', encoding='utf-8') as f:
+                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}))
+            
+            if content.get('entrance') or (content.get('mainpage') and not entrance):
                 if entrance:
                     logging.error(f'contents 多个入口: {content['file']}')
                     exit()
@@ -451,10 +476,10 @@ def build_file():
                 with open(os.path.join(BASE_PATH, 'output', 'Custom.xaml'), 'w', encoding='utf-8') as f:
                     f.write(page)
                 with open(os.path.join(BASE_PATH, 'output', 'Custom.json'), 'w', encoding='utf-8') as f:
-                    f.write(json.dumps({'Title':f'{NAME} | {content['name']}'}))
+                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}))
 
-            if content.get('sub',[]):
-                analysis_contents(content['sub'], namepath+content['name']+'/')
+            if content.get('sub',[]) and not content.get('mainpage'):
+                analysis_contents(content['sub'], namepath+doc_name+'/')
 
     def copy_public_file():
         logging.info('开始复制public文件')

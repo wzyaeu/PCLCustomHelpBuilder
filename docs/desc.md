@@ -21,7 +21,7 @@ By Wzyaeu | Powered by PCL
 
 ## 指南
 
-[指南](jump!指南)
+[指南](/指南)
 
 ## 引用
 

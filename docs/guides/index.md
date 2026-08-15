@@ -55,11 +55,13 @@ entrance: true
 
 有以下元数据可填写
 
-##### `name`
+##### `name / title`
 
 字符串，默认为文件名（不含`.md`后缀）
 
 文档的名称，在目录和标题中使用。
+
+优先`title`键
 
 ##### `entrance`
 
@@ -122,6 +124,10 @@ entrance: true
 可以在页脚中写上特定的占位符，替换到特定的文本。
 
 - `{ver}` 当前 PCLCustomHelpBuilder 的版本。
+
+#### 默认主页
+
+如无入口点文章，则`Custom.xaml`文件即为默认主页。
 
 ### 3.构建
 
