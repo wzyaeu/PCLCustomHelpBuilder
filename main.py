@@ -260,7 +260,18 @@ def build_file():
                             'content':analysis_para(token['children'])
                         })
                     case 'block_quote':
-                        t = f'body/quote'
+                        if len(token['children'][0].get('children', [])) > 0:
+                            print(token)
+                            if token['children'][0]['children'][0].get('raw', '') == '[warn]':
+                                token['children'][0]['children'].pop(0)
+                                t = f'body/quote/warn'
+                            elif token['children'][0]['children'][0].get('raw', '') == '[tip]':
+                                token['children'][0]['children'].pop(0)
+                                t = f'body/quote/tip'
+                            else:
+                                t = f'body/quote/main'
+                        else:
+                            t = f'body/quote/main'
                         load_template(t)
                         body += replaces(templates[t],{
                             'content':analysis_level(token['children'])

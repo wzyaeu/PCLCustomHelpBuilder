@@ -39,6 +39,7 @@ PCLCustomHelpBuilder不支持以下语法写法：
 
 PCLCustomHelpBuilder有以下的扩展语法：
 
+- 在引用块前写上`[warn]`/`[tip]`即可替换不同颜色的引用块
 - 在链接前写上`help!`即可打开对应链接的PCL帮助页面。如[打开PCLBangumiPage](help!https://bangumi.p.kaphia.qzz.io/Custom.json)
 - 在链接前写上`jump!`即可打开本帮助中目录对应位置的页面。如[打开协议](jump!协议)、[打开支持的语法](jump!使用/支持的语法)
 - 在链接前写上`event!`并使用`event!{EventType}!{EventData}`格式的链接即可生成一个对应 EventType 和 EventData 的按钮，如[打开一个弹窗](event!弹出窗口!标题|内容)。链接也只会使用前两个感叹号分割，如[打开一个感叹号弹窗](event!弹出窗口!!!!!!!!!!!!!!!|!!!!!!!!!!!!!!)
