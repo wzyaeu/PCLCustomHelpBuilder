@@ -20,10 +20,8 @@ def escape_xaml(text, **kwargs):
     .replace('>', '&gt;')\
     .replace('"', '&quot;')\
     .replace("'", '&apos;')\
-    .replace('"', '&quot;')\
+    .replace("{", '&#x7B;')\
 
-    if not kwargs.get('no_cb'):
-        b = b.replace("{", '{}{')
     return b
 
 def load_template(names, noxaml = False):
@@ -453,12 +451,14 @@ def build_file():
         global entrance
         # 层级下生成文件
         occupied_name = []
-        for content in (contents if namepath != '' else contents + [{
+        for content in sorted(contents if namepath != '' else contents + [{
             'name': NAME+' 目录', 
             'file': False, 
             'mainpage': True, 
             'sub': base_contents
-        }]):
+        }], key=lambda x: int(x.get('index', 0))):
+            if content.get('mainpage') and entrance:
+                continue
             doc_name = content['name']
             
             if doc_name in occupied_name:
@@ -467,7 +467,7 @@ def build_file():
             if doc_name == 'Custom':
                 logging.error(f'contents 禁止使用的文档名: {doc_name}')
                 exit()
-            logging.info(f'生成文件: {doc_name}')
+            logging.info(f'生成文件: {namepath}{doc_name}')
             occupied_name.append(doc_name)
 
             load_template('page')
