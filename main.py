@@ -72,10 +72,12 @@ def load_config():
     OUTPUT_URL = config['output_url']
 
 def load_contents():
-    global base_contents
+    global base_contents, doc_tags
     logging.info('开始加载文件布局')
+    doc_tags = {}
     base_contents = []
-    def load_path(path=''):
+    def load_path(path='', docpath=''):
+        global doc_tags
         output = []
         contents_path = os.path.join(BASE_PATH, 'docs', path)
         items = os.listdir(contents_path)
@@ -92,7 +94,12 @@ def load_contents():
                     'file': path+item,
                     'visiable': post.get('visiable', True),
                     'entrance': post.get('entrance', False),
+                    'tags': post.get('tags', []),
                 })
+                for t in post.get('tags', []): # type: ignore
+                    if t not in doc_tags:
+                        doc_tags[t] = []
+                    doc_tags[t].append(docpath+post.get('name', item[:-3])) # type: ignore
             elif os.path.isdir(item_path):
                 have_index_file = os.path.exists(os.path.join(item_path, 'index.md'))
                 if os.path.exists(os.path.join(item_path, 'config.json')):
@@ -105,13 +112,14 @@ def load_contents():
                     'file': os.path.join(item_path, 'index.md') if have_index_file else False,
                     'folded': config.get('folded', False),
                     'visiable': config.get('visiable', True),
-                    'sub': load_path(path+item+'/')
+                    'sub': load_path(path+item+'/', path+config.get('name', item)+'/')
                 })
         return output
     try:    
         base_contents = load_path()
     except Exception as e:
         logging.error(f'加载 contents 时发生错误: {e}')
+        raise
         exit()
 
 def build_file():
@@ -119,287 +127,317 @@ def build_file():
     shutil.rmtree('output',ignore_errors=True)
     os.makedirs('output', exist_ok=True)
     markdown = mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
+    def analysis_para(para_data):
+        def data_to_text(link_data):
+            raw = ''
+            for c in link_data:
+                if 'raw' in c:
+                    raw += c['raw']
+                elif 'children' in c:
+                    raw +=  data_to_text(c['children'])
+            return raw
+        para = ''
+        for tokenindex, token in enumerate(para_data, start=1):
+            match token['type']:
+                case 'linebreak':
+                    t = f'body/para/lb'
+                    load_template(t)
+                    para += templates[t]
+                case 'text':
+                    para += escape_xaml(token['raw'])
+                case 'inline_html':
+                    para += escape_xaml(token['raw'])
+                case 'emphasis':
+                    t = f'body/para/italic'
+                    load_template(t)
+                    para += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'strikethrough':
+                    t = f'body/para/strikethrough'
+                    load_template(t)
+                    para += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'strong':
+                    t = f'body/para/bold'
+                    load_template(t)
+                    para += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'codespan':
+                    t = f'body/para/inlinecode'
+                    load_template(t)
+                    para += replaces(templates[t],{
+                        'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:], no_cb=True)
+                    })
+                case 'link':
+                    url = unquote(token['attrs']['url'])
+                    # 网址链接
+                    if url.startswith('http://') or url.startswith('https://'):
+                        t = f'body/para/event_btn'
+                        url = ['打开网页', url]
+                    # 帮助页
+                    elif url.startswith('help!'):
+                        t = f'body/para/event_btn'
+                        url = ['打开帮助', url[5:]]
+                    # 自定义功能按钮
+                    elif url.startswith('event!'):
+                        t = f'body/para/event_btn'
+                        url = url[6:].split('!', maxsplit=1)
+                    # 本帮助内跳转
+                    elif url.startswith('jump!'):
+                        t = f'body/para/event_btn'
+                        url = ['打开帮助', OUTPUT_URL+url[5:]+'.json']
+                    elif url.startswith('/'):
+                        t = f'body/para/event_btn'
+                        url = ['打开帮助', OUTPUT_URL+url[1:]+'.json']
+                    # 复制文本
+                    else:
+                        t = f'body/para/event_btn'
+                        url = ['复制文本', url]
+                    load_template(t)
+                    para += replaces(templates[t],{
+                        'type':url[0],
+                        'data':url[1],
+                        'content': analysis_para(token['children'])
+                    })
+                case 'image':
+                    t = f'body/para/image'
+                    load_template(t)
+                    url = token['attrs']['url']
+                    if url.startswith('/'):
+                        url = os.path.join(OUTPUT_URL, '.public', url[1:]).replace('\\', '/')
+                    para += replaces(templates[t],{
+                        'image':url,
+                        'title': data_to_text(token['children'])
+                    })
+        return para
+    def analysis_level(level_tokens, **kwargs):
+        body = ''
+        for tokenindex, token in enumerate(level_tokens, start=1):
+            match token['type']:
+                case 'heading':
+                    t = f'body/h{token['attrs']['level']}'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'paragraph':
+                    t = f'body/para'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'block_text':
+                    t = f'body/para'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_para(token['children'])
+                    })
+                case 'block_quote':
+                    if len(token['children'][0].get('children', [])) > 0:
+                        if token['children'][0]['children'][0].get('raw', '') == '[warn]':
+                            token['children'][0]['children'].pop(0)
+                            t = f'body/quote/warn'
+                        elif token['children'][0]['children'][0].get('raw', '') == '[tip]':
+                            token['children'][0]['children'].pop(0)
+                            t = f'body/quote/tip'
+                        else:
+                            t = f'body/quote/main'
+                    else:
+                        t = f'body/quote/main'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_level(token['children'])
+                    })
+                case 'list':
+                    if token['attrs']['ordered']:
+                        t = f'body/list/number_list'
+                    else:
+                        t = f'body/list'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'items':analysis_level(token['children'])
+                    })
+                case 'list_item':
+                    t = 'body/list/item'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_level(token['children'])
+                    })
+                case 'block_code':
+                    h_lang = 'info' in token.get('attrs',{})
+                    if h_lang:
+                        if token['attrs']['info'] == 'xaml' and token['raw'].startswith('<!-- pcl -->'):
+                            t = f'body/source_code'
+                            load_template(t)
+                            body += replaces(templates[t],{
+                                'content':token['raw']
+                            })
+                            continue
+                        t = f'body/codeblock_lang'
+                    else:
+                        t = f'body/codeblock'
+                    load_template(t)
+
+                    para_content = []
+                    l = len(token['raw'].splitlines())
+                    for index, line in enumerate(token['raw'].splitlines(), start=1):
+                        para_content.append({
+                            'raw': line,
+                            'type': 'text'
+                        })
+                        if index != l:
+                            para_content.append({'type': 'linebreak'})
+
+                    if h_lang:
+                        body += replaces(templates[t],{
+                            'lang':token['attrs']['info'],
+                            'content':analysis_para(para_content)
+                        })
+                    else:
+                        body += replaces(templates[t],{
+                            'content':analysis_para(para_content)
+                        })
+                case 'thematic_break':
+                    t = f'body/hr'
+                    load_template(t)
+                    body += templates[t]
+                case 'block_html':
+                    t = f'body/para'
+                    load_template(t)
+                    body += replaces(templates[t],{
+                        'content':analysis_para([{
+                            'raw': token['raw'],
+                            'type': 'text'
+                        }])
+                    })
+                case 'table':
+                    t = [
+                        f'body/table',
+                        f'body/table/definitions/column',
+                        f'body/table/definitions/row',
+                    ]
+                    load_template(t)
+
+                    t_head = {}
+                    t_body = {}
+                    for c in token['children']:
+                        if c['type'] == 'table_head':
+                            t_head = c
+                        if c['type'] == 'table_body':
+                            t_body = c
+
+                    body += replaces(templates[t[0]],{
+                        'head-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
+                        'head-items':analysis_level(t_head['children'], table_type='head'),
+                        'body-row-definitions':' '.join([templates[t[2]]] * len(t_body['children'])),
+                        'body-column-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
+                        'body-items':' '.join([
+                            analysis_level(row['children'], table_type='body', table_bottom=(rowindex==len(t_body['children'])), table_row=rowindex-1)
+                            for rowindex, row in enumerate(t_body['children'], start=1)
+                        ]),
+                    })
+                case 'table_cell':
+                    if kwargs.get('table_type') == 'head':
+                        if tokenindex == 1:
+                            t = f'body/table/head/left'
+                        elif tokenindex == len(level_tokens):
+                            t = f'body/table/head/right'
+                        else:
+                            t = f'body/table/head/middle'
+                        load_template(t)
+                        body += replaces(templates[t],{
+                            'column-index':tokenindex-1,
+                            'content':analysis_para(token['children'])
+                        })
+                    elif kwargs.get('table_type') == 'body':
+                        if kwargs.get('table_bottom'):
+                            if tokenindex == 1:
+                                t = f'body/table/body/left'
+                            elif tokenindex == len(level_tokens):
+                                t = f'body/table/body/right'
+                            else:
+                                t = f'body/table/body/bottom'
+                        else:
+                            if tokenindex == 1:
+                                t = f'body/table/body/middleleft'
+                            elif tokenindex == len(level_tokens):
+                                t = f'body/table/body/middleright'
+                            else:
+                                t = f'body/table/body/middle'
+                        load_template(t)
+                        body += replaces(templates[t],{
+                            'column-index':tokenindex-1,
+                            'row-index':kwargs.get('table_row'),
+                            'content':analysis_para(token['children'])
+                        })
+        return body
+    
+    def contents_xaml(hold_name, path='', indent=0, cdata=base_contents):
+        load_template('sidebar/item')
+        load_template('sidebar/item_hold')
+        load_template('sidebar/item_more')
+        output = ''
+        for c in cdata:
+            if c.get('visiable') or path in hold_name:
+                if path+c['name'] == hold_name:
+                    output += replaces(templates['sidebar/item_hold'],{
+                        'indent': indent * 20,
+                        'name': c['name'],
+                    })
+                else:
+                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
+                        output += replaces(templates['sidebar/item'],{
+                            'indent': indent * 20,
+                            'name': c['name'],
+                            'url': OUTPUT_URL+path+c['name']+'.json',
+                        })
+                    else:
+                        output += replaces(templates['sidebar/item_more'],{
+                            'indent': indent * 20,
+                            'name': c['name'],
+                            'url': OUTPUT_URL+path+c['name']+'.json',
+                        })
+                if c.get('sub',[]):
+                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
+                        output += contents_xaml(hold_name, path+c['name']+'/', indent+1, c['sub'])
+        return output
+    def tags_xaml(hold = None, up = []):
+        load_template('sidebar/tag')
+        load_template('sidebar/item')
+        load_template('sidebar/item_tag')
+        output = ''
+        for t in list(doc_tags.keys()):
+            if hold == t:
+                output += replaces(templates['sidebar/item_hold'],{
+                    'indent': 0,
+                    'name': t+': '+str(len(doc_tags[t])),
+                })
+            else:
+                if t in up:
+                    output += replaces(templates['sidebar/item_tag'],{
+                        'indent': 0,
+                        'name': t+': '+str(len(doc_tags[t])),
+                        'url': OUTPUT_URL+'.tags/'+t+'.json'
+                    })
+                else:
+                    output += replaces(templates['sidebar/item'],{
+                        'indent': 0,
+                        'name': t+': '+str(len(doc_tags[t])),
+                        'url': OUTPUT_URL+'.tags/'+t+'.json'
+                    })
+        return replaces(templates['sidebar/tag'],{
+            'tags': output
+        })
+    def footer_xaml():
+        return replaces(templates['sidebar/footer'],{
+            'ver':VERSION
+        })
 
     def analysis_contents(contents=base_contents, namepath=''):
         global entrance
-        def contents_xaml(hold_name, path='', indent=0, cdata=base_contents):
-            load_template('sidebar/item')
-            load_template('sidebar/item_hold')
-            load_template('sidebar/item_more')
-            output = ''
-            for c in cdata:
-                if c.get('visiable') or path in hold_name:
-                    if path+c['name'] == hold_name:
-                        output += replaces(templates['sidebar/item_hold'],{
-                            'indent': indent * 20,
-                            'name': c['name'],
-                        })
-                    else:
-                        if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
-                            output += replaces(templates['sidebar/item'],{
-                                'indent': indent * 20,
-                                'name': c['name'],
-                                'url': OUTPUT_URL+path+c['name']+'.json',
-                            })
-                        else:
-                            output += replaces(templates['sidebar/item_more'],{
-                                'indent': indent * 20,
-                                'name': c['name'],
-                                'url': OUTPUT_URL+path+c['name']+'.json',
-                            })
-                    if c.get('sub',[]):
-                        if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
-                            output += contents_xaml(hold_name, path+c['name']+'/', indent+1, c['sub'])
-            return output
-        def analysis_para(para_data):
-            def data_to_text(link_data):
-                raw = ''
-                for c in link_data:
-                    if 'raw' in c:
-                        raw += c['raw']
-                    elif 'children' in c:
-                        raw +=  data_to_text(c['children'])
-                return raw
-            para = ''
-            for tokenindex, token in enumerate(para_data, start=1):
-                match token['type']:
-                    case 'linebreak':
-                        t = f'body/para/lb'
-                        load_template(t)
-                        para += templates[t]
-                    case 'text':
-                        para += escape_xaml(token['raw'])
-                    case 'inline_html':
-                        para += escape_xaml(token['raw'])
-                    case 'emphasis':
-                        t = f'body/para/italic'
-                        load_template(t)
-                        para += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'strikethrough':
-                        t = f'body/para/strikethrough'
-                        load_template(t)
-                        para += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'strong':
-                        t = f'body/para/bold'
-                        load_template(t)
-                        para += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'codespan':
-                        t = f'body/para/inlinecode'
-                        load_template(t)
-                        para += replaces(templates[t],{
-                            'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:], no_cb=True)
-                        })
-                    case 'link':
-                        url = unquote(token['attrs']['url'])
-                        # 网址链接
-                        if url.startswith('http://') or url.startswith('https://'):
-                            t = f'body/para/event_btn'
-                            url = ['打开网页', url]
-                        # 帮助页
-                        elif url.startswith('help!'):
-                            t = f'body/para/event_btn'
-                            url = ['打开帮助', url[5:]]
-                        # 自定义功能按钮
-                        elif url.startswith('event!'):
-                            t = f'body/para/event_btn'
-                            url = url[6:].split('!', maxsplit=1)
-                        # 本帮助内跳转
-                        elif url.startswith('jump!'):
-                            t = f'body/para/event_btn'
-                            url = ['打开帮助', OUTPUT_URL+url[5:]+'.json']
-                        elif url.startswith('/'):
-                            t = f'body/para/event_btn'
-                            url = ['打开帮助', OUTPUT_URL+url[1:]+'.json']
-                        # 复制文本
-                        else:
-                            t = f'body/para/event_btn'
-                            url = ['复制文本', url]
-                        load_template(t)
-                        para += replaces(templates[t],{
-                            'type':url[0],
-                            'data':url[1],
-                            'content': analysis_para(token['children'])
-                        })
-                    case 'image':
-                        t = f'body/para/image'
-                        load_template(t)
-                        url = token['attrs']['url']
-                        if url.startswith('/'):
-                            url = os.path.join(OUTPUT_URL, 'public', url[1:]).replace('\\', '/')
-                        para += replaces(templates[t],{
-                            'image':url,
-                            'title': data_to_text(token['children'])
-                        })
-            return para
-        def analysis_level(level_tokens, **kwargs):
-            body = ''
-            for tokenindex, token in enumerate(level_tokens, start=1):
-                match token['type']:
-                    case 'heading':
-                        t = f'body/h{token['attrs']['level']}'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'paragraph':
-                        t = f'body/para'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'block_text':
-                        t = f'body/para'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_para(token['children'])
-                        })
-                    case 'block_quote':
-                        if len(token['children'][0].get('children', [])) > 0:
-                            print(token)
-                            if token['children'][0]['children'][0].get('raw', '') == '[warn]':
-                                token['children'][0]['children'].pop(0)
-                                t = f'body/quote/warn'
-                            elif token['children'][0]['children'][0].get('raw', '') == '[tip]':
-                                token['children'][0]['children'].pop(0)
-                                t = f'body/quote/tip'
-                            else:
-                                t = f'body/quote/main'
-                        else:
-                            t = f'body/quote/main'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_level(token['children'])
-                        })
-                    case 'list':
-                        if token['attrs']['ordered']:
-                            t = f'body/list/number_list'
-                        else:
-                            t = f'body/list'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'items':analysis_level(token['children'])
-                        })
-                    case 'list_item':
-                        t = 'body/list/item'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_level(token['children'])
-                        })
-                    case 'block_code':
-                        h_lang = 'info' in token.get('attrs',{})
-                        if h_lang:
-                            if token['attrs']['info'] == 'xaml' and token['raw'].startswith('<!-- pcl -->'):
-                                t = f'body/source_code'
-                                load_template(t)
-                                body += replaces(templates[t],{
-                                    'content':token['raw']
-                                })
-                                continue
-                            t = f'body/codeblock_lang'
-                        else:
-                            t = f'body/codeblock'
-                        load_template(t)
-
-                        para_content = []
-                        l = len(token['raw'].splitlines())
-                        for index, line in enumerate(token['raw'].splitlines(), start=1):
-                            para_content.append({
-                                'raw': line,
-                                'type': 'text'
-                            })
-                            if index != l:
-                                para_content.append({'type': 'linebreak'})
-
-                        if h_lang:
-                            body += replaces(templates[t],{
-                                'lang':token['attrs']['info'],
-                                'content':analysis_para(para_content)
-                            })
-                        else:
-                            body += replaces(templates[t],{
-                                'content':analysis_para(para_content)
-                            })
-                    case 'thematic_break':
-                        t = f'body/hr'
-                        load_template(t)
-                        body += templates[t]
-                    case 'block_html':
-                        t = f'body/para'
-                        load_template(t)
-                        body += replaces(templates[t],{
-                            'content':analysis_para([{
-                                'raw': token['raw'],
-                                'type': 'text'
-                            }])
-                        })
-                    case 'table':
-                        t = [
-                            f'body/table',
-                            f'body/table/definitions/column',
-                            f'body/table/definitions/row',
-                        ]
-                        load_template(t)
-
-                        t_head = {}
-                        t_body = {}
-                        for c in token['children']:
-                            if c['type'] == 'table_head':
-                                t_head = c
-                            if c['type'] == 'table_body':
-                                t_body = c
-
-                        body += replaces(templates[t[0]],{
-                            'head-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
-                            'head-items':analysis_level(t_head['children'], table_type='head'),
-                            'body-row-definitions':' '.join([templates[t[2]]] * len(t_body['children'])),
-                            'body-column-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
-                            'body-items':' '.join([
-                                analysis_level(row['children'], table_type='body', table_bottom=(rowindex==len(t_body['children'])), table_row=rowindex-1)
-                                for rowindex, row in enumerate(t_body['children'], start=1)
-                            ]),
-                        })
-                    case 'table_cell':
-                        if kwargs.get('table_type') == 'head':
-                            if tokenindex == 1:
-                                t = f'body/table/head/left'
-                            elif tokenindex == len(level_tokens):
-                                t = f'body/table/head/right'
-                            else:
-                                t = f'body/table/head/middle'
-                            load_template(t)
-                            body += replaces(templates[t],{
-                                'column-index':tokenindex-1,
-                                'content':analysis_para(token['children'])
-                            })
-                        elif kwargs.get('table_type') == 'body':
-                            if kwargs.get('table_bottom'):
-                                if tokenindex == 1:
-                                    t = f'body/table/body/left'
-                                elif tokenindex == len(level_tokens):
-                                    t = f'body/table/body/right'
-                                else:
-                                    t = f'body/table/body/bottom'
-                            else:
-                                if tokenindex == 1:
-                                    t = f'body/table/body/middleleft'
-                                elif tokenindex == len(level_tokens):
-                                    t = f'body/table/body/middleright'
-                                else:
-                                    t = f'body/table/body/middle'
-                            load_template(t)
-                            body += replaces(templates[t],{
-                                'column-index':tokenindex-1,
-                                'row-index':kwargs.get('table_row'),
-                                'content':analysis_para(token['children'])
-                            })
-            return body
-
         # 层级下生成文件
         occupied_name = []
         for content in (contents if namepath != '' else contents + [{
@@ -461,12 +499,17 @@ def build_file():
 
             # 页脚
             load_template('sidebar/footer')
-            footer = replaces(templates['sidebar/footer'],{
-                'ver':VERSION
-            })
+            footer = footer_xaml()
+
+            # 标签
+            if doc_tags:
+                tags = tags_xaml(up=content.get('tags', []))
+            else:
+                tags = ''
 
             page = replaces(templates['page'],{
                 'contents':contents_xaml(namepath+(doc_name if not content.get('mainpage') else '')),
+                'tag':tags,
                 'body':body,
                 'name':NAME,
                 'footer':footer
@@ -491,12 +534,40 @@ def build_file():
 
             if content.get('sub',[]) and not content.get('mainpage'):
                 analysis_contents(content['sub'], namepath+doc_name+'/')
+    def analysis_tags():
+        load_template('page')
+        for t in list(doc_tags.keys()):
+            os.makedirs('output/.tags', exist_ok=True)
+            raw_data = '\n'.join((
+                f'# 标签 {t}',
+                f'',
+                *[
+                    f'- [{tdoc}](jump!{tdoc})'
+                    for tdoc in doc_tags[t]
+                ]
+            ))
+            body = analysis_level(markdown(raw_data))
+            tags = tags_xaml(hold=t)
+            load_template('sidebar/footer')
+            footer = footer_xaml()
 
+            page = replaces(templates['page'],{
+                'contents':contents_xaml(''),
+                'tag':tags,
+                'body':body,
+                'name':NAME,
+                'footer':footer
+            })
+            with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.xaml'), 'w', encoding='utf-8') as f:
+                f.write(page)
+            with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.json'), 'w', encoding='utf-8') as f:
+                f.write(json.dumps({'Title':f'{NAME} | 标签 {t}'}))
     def copy_public_file():
         logging.info('开始复制public文件')
-        shutil.copytree(os.path.join(BASE_PATH, 'public'), os.path.join(BASE_PATH, 'output/public'), dirs_exist_ok=True)
+        shutil.copytree(os.path.join(BASE_PATH, 'public'), os.path.join(BASE_PATH, 'output/.public'), dirs_exist_ok=True)
 
     analysis_contents()
+    analysis_tags()
     copy_public_file()
 
 LOG_FORMAT = '[%(asctime)s %(levelname)s] - %(message)s'

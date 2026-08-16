@@ -1,0 +1,1 @@
+<local:MyCard Title="标签" Margin="4" CanSwap="True"><StackPanel Margin="10,30,10,10">{tags}</StackPanel></local:MyCard>
