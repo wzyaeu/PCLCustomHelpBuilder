@@ -61,7 +61,8 @@ def load_config():
             assert 'output_url' in config, '无 url 字段'
         else:
             config = {
-                'name': 'PCLCustomHelpBuilder'
+                'name': 'PCLCustomHelpBuilder',
+                'output_url': '',
             }
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f)
@@ -90,29 +91,35 @@ def load_contents():
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
-                    'name': post.get('name', item[:-3]),
+                    'name': post.get('title', post.get('name', item[:-3])),
                     'file': path+item,
                     'visiable': post.get('visiable', True),
                     'entrance': post.get('entrance', False),
                     'tags': post.get('tags', []),
+                    'index': post.get('index', 0),
                 })
                 for t in post.get('tags', []): # type: ignore
                     if t not in doc_tags:
                         doc_tags[t] = []
                     doc_tags[t].append(docpath+post.get('name', item[:-3])) # type: ignore
             elif os.path.isdir(item_path):
-                have_index_file = os.path.exists(os.path.join(item_path, 'index.md'))
                 if os.path.exists(os.path.join(item_path, 'config.json')):
                     with open(os.path.join(item_path, 'config.json'), 'r', encoding='utf-8') as f:
                         config = json.load(f)
                 else:
                     config = {}
+                have_index_file = os.path.exists(os.path.join(contents_path, f'{item}.md'))
+                if have_index_file:
+                    index_config = frontmatter.load(os.path.join(contents_path, f'{item}.md'))
+                else:
+                    index_config = {}
                 output.append({
-                    'name': config.get('name', item),
-                    'file': os.path.join(item_path, 'index.md') if have_index_file else False,
+                    'name': index_config.get('name', config.get('name', item)),
+                    'file': os.path.join(contents_path, f'{item}.md') if have_index_file else False,
                     'folded': config.get('folded', False),
                     'visiable': config.get('visiable', True),
-                    'sub': load_path(path+item+'/', path+config.get('name', item)+'/')
+                    'sub': load_path(path+item+'/', path+config.get('name', item)+'/'),
+                    'index': index_config.get('index', config.get('index', 0)),
                 })
         return output
     try:    
@@ -127,7 +134,7 @@ def build_file():
     shutil.rmtree('output',ignore_errors=True)
     os.makedirs('output', exist_ok=True)
     markdown = mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
-    def analysis_para(para_data):
+    def analysis_para(para_data, **attr):
         def data_to_text(link_data):
             raw = ''
             for c in link_data:
@@ -144,27 +151,33 @@ def build_file():
                     load_template(t)
                     para += templates[t]
                 case 'text':
-                    para += escape_xaml(token['raw'])
+                    if 'textattr' in attr:
+                        style = ''
+                        t = f'body/para/text/style_text'
+                        load_template(t)
+                        if 'blod' in attr['textattr']:
+                            load_template(f'body/para/text/bold')
+                            style += templates[f'body/para/text/bold']
+                        if 'italic' in attr['textattr']:
+                            load_template(f'body/para/text/italic')
+                            style += templates[f'body/para/text/italic']
+                        if 'strikethrough' in attr['textattr']:
+                            load_template(f'body/para/text/strikethrough')
+                            style += templates[f'body/para/text/strikethrough']
+                        para += replaces(templates[t],{
+                            'content': token['raw'],
+                            'style': style
+                        })
+                    else:
+                        para += escape_xaml(token['raw'])
                 case 'inline_html':
                     para += escape_xaml(token['raw'])
-                case 'emphasis':
-                    t = f'body/para/italic'
-                    load_template(t)
-                    para += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
-                    })
-                case 'strikethrough':
-                    t = f'body/para/strikethrough'
-                    load_template(t)
-                    para += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
-                    })
                 case 'strong':
-                    t = f'body/para/bold'
-                    load_template(t)
-                    para += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
-                    })
+                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['blod'])
+                case 'emphasis':
+                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['italic'])
+                case 'strikethrough':
+                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['strikethrough'])
                 case 'codespan':
                     t = f'body/para/inlinecode'
                     load_template(t)
@@ -199,8 +212,8 @@ def build_file():
                     load_template(t)
                     para += replaces(templates[t],{
                         'type':url[0],
-                        'data':url[1],
-                        'content': analysis_para(token['children'])
+                        'data':escape_xaml(url[1]),
+                        'content': analysis_para(token['children'], **attr)
                     })
                 case 'image':
                     t = f'body/para/image'
@@ -380,7 +393,7 @@ def build_file():
         load_template('sidebar/item_hold')
         load_template('sidebar/item_more')
         output = ''
-        for c in cdata:
+        for c in sorted(cdata, key=lambda x: x['index']):
             if c.get('visiable') or path in hold_name:
                 if path+c['name'] == hold_name:
                     output += replaces(templates['sidebar/item_hold'],{
@@ -433,7 +446,7 @@ def build_file():
         })
     def footer_xaml():
         return replaces(templates['sidebar/footer'],{
-            'ver':VERSION
+            'version':VERSION
         })
 
     def analysis_contents(contents=base_contents, namepath=''):
@@ -446,7 +459,7 @@ def build_file():
             'mainpage': True, 
             'sub': base_contents
         }]):
-            doc_name = content.get('title', content['name'])
+            doc_name = content['name']
             
             if doc_name in occupied_name:
                 logging.error(f'contents 文档名重复: {doc_name}')
@@ -473,10 +486,11 @@ def build_file():
                 def subdoc(*a, **kwa):
                     def _(docdata, path=''):
                         sdoutput = []
-                        for sd in docdata.get('sub',[]):
-                            sdoutput.append(f'- [{sd['name']}](jump!{namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name']})')
-                            if 'sub' in sd:
-                                sdoutput.append(_(sd, path+sd['name']+'/'))
+                        for sd in sorted(docdata.get('sub',[]), key=lambda x: x['index']):
+                            if sd['visiable']:
+                                sdoutput.append(f'- [{sd['name']}](jump!{namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name']})')
+                                if 'sub' in sd:
+                                    sdoutput.append(_(sd, path+sd['name']+'/'))
                         return sdoutput
                     def join_with_indent(items, depth=0) :
                         lines = []

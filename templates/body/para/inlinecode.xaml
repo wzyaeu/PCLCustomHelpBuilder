@@ -1,1 +1,1 @@
-<TextBox Style="{StaticResource InlineCode}" Text="{content}"/>
+<InlineUIContainer BaselineAlignment="Center"><TextBox Style="{StaticResource InlineCode}" Text="{content}"/></InlineUIContainer> 

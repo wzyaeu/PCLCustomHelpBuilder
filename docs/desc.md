@@ -1,5 +1,5 @@
 ---
-name: "介绍"
+title: "介绍"
 entrance: true
 ---
 
@@ -31,4 +31,4 @@ By Wzyaeu | Powered by PCL
 
 ## 协议
 
-本项目使用 CC BY-NC-SA 4.0 协议。
+本项目使用 CC BY-NC 4.0 协议。
