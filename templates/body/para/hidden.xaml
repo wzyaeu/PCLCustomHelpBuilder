@@ -1,0 +1,1 @@
+<InlineUIContainer BaselineAlignment="Center"><TextBox Style="{StaticResource HiddenText}">{content}</TextBox></InlineUIContainer>

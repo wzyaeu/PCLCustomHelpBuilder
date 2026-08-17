@@ -12,7 +12,7 @@ templates = {}
 entrance = False
 VERSION = 'v1.0.0-正式版'
 
-def escape_xaml(text, **kwargs):
+def escape_xaml(text, **attr):
     if text is None:
         return ''
     b = text.replace('&', '&amp;')\
@@ -95,6 +95,7 @@ def load_contents():
                     'entrance': post.get('entrance', False),
                     'tags': post.get('tags', []),
                     'index': post.get('index', 0),
+                    'post': post.metadata
                 })
                 if not isinstance(post.get('visiable', True), bool):
                     logging.error(f'Visiable错误: {path+item}: {post.get('visiable', True)}')
@@ -115,33 +116,46 @@ def load_contents():
             elif os.path.isdir(item_path):
                 if os.path.exists(os.path.join(item_path, 'config.json')):
                     with open(os.path.join(item_path, 'config.json'), 'r', encoding='utf-8') as f:
-                        config = json.load(f)
+                        doc_config = json.load(f)
                 else:
-                    config = {}
+                    doc_config = {}
                 have_index_file = os.path.exists(os.path.join(contents_path, f'{item}.md'))
                 if have_index_file:
-                    index_config = frontmatter.load(os.path.join(contents_path, f'{item}.md'))
+                    index_config = frontmatter.load(os.path.join(contents_path, f'{item}.md')).metadata
                 else:
                     index_config = {}
                 output.append({
-                    'name': index_config.get('name', config.get('name', item)),
+                    'name': index_config.get('name', doc_config.get('name', item)),
                     'file': os.path.join(contents_path, f'{item}.md') if have_index_file else False,
-                    'folded': config.get('folded', False),
-                    'visiable': config.get('visiable', True),
-                    'sub': load_path(path+item+'/', path+config.get('name', item)+'/'),
-                    'index': index_config.get('index', config.get('index', 0)),
+                    'folded': doc_config.get('folded', False),
+                    'visiable': doc_config.get('visiable', True),
+                    'sub': load_path(path+item+'/', path+doc_config.get('name', item)+'/'),
+                    'index': index_config.get('index', doc_config.get('index', 0)),
+                    'post': {**index_config, **doc_config}
                 })
-                if not isinstance(config.get('visiable', True), bool):
-                    logging.error(f'Visiable错误: {path+item}: {config.get('visiable', True)}')
+                if not isinstance(doc_config.get('visiable', True), bool):
+                    logging.error(f'Visiable错误: {path+item}: {doc_config.get('visiable', True)}')
                     exit()
-                if not isinstance(config.get('index', config.get('index', 0)), int):
-                    logging.error(f'Index错误: {path+item}: {config.get('index', config.get('index', 0))}')
+                if not isinstance(doc_config.get('index', doc_config.get('index', 0)), int):
+                    logging.error(f'Index错误: {path+item}: {doc_config.get('index', doc_config.get('index', 0))}')
                     exit()
         return output
+    def load_config():
+        global docconfig
+        docconfig = {}
+        if os.path.exists(os.path.join(BASE_PATH, 'docs', '.config', 'footer.md')):
+            logging.info('找到页脚文件')
+            with open(os.path.join(BASE_PATH, 'docs', '.config', 'footer.md'), 'r', encoding='utf-8') as f:
+                docconfig['footer'] = f.read()
     try:    
         base_contents = load_path()
     except Exception as e:
         logging.error(f'加载 contents 时发生错误: {e}')
+        exit()
+    try:    
+        load_config()
+    except Exception as e:
+        logging.error(f'加载 config 时发生错误: {e}')
         exit()
 
 def build_file():
@@ -156,7 +170,7 @@ def build_file():
                 if 'raw' in c:
                     raw += c['raw']
                 elif 'children' in c:
-                    raw +=  data_to_text(c['children'])
+                    raw += data_to_text(c['children'])
             return raw
         para = ''
         for tokenindex, token in enumerate(para_data, start=1):
@@ -188,11 +202,17 @@ def build_file():
                 case 'inline_html':
                     para += escape_xaml(token['raw'])
                 case 'strong':
-                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['blod'])
+                    para += analysis_para(token['children'], 
+                    **{**attr, 'textattr': attr.get('textattr', [])+
+                       ['blod']})
                 case 'emphasis':
-                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['italic'])
+                    para += analysis_para(token['children'], 
+                    **{**attr, 'textattr': attr.get('textattr', [])+
+                       ['italic']})
                 case 'strikethrough':
-                    para += analysis_para(token['children'], textattr=attr.get('textattr', [])+['strikethrough'])
+                    para += analysis_para(token['children'], 
+                    **{**attr, 'textattr': attr.get('textattr', [])+
+                       ['strikethrough']})
                 case 'codespan':
                     t = f'body/para/inlinecode'
                     load_template(t)
@@ -220,6 +240,32 @@ def build_file():
                     elif url.startswith('/'):
                         t = f'body/para/event_btn'
                         url = ['打开帮助', OUTPUT_URL+url[1:]+'.json']
+                    # 黑幕
+                    elif url.startswith('hidden!'):
+                        t = f'body/para/hidden'
+                        load_template(t)
+                        para += replaces(templates[t],{
+                            'content':data_to_text(token['children'])
+                        })
+                        continue
+                    # 页脚
+                    elif attr.get('footer') and url.startswith('post!'):
+                        url = url[5:].split('!')
+                        ok = False
+                        for k in url[:-1]:
+                            if k in attr.get('footerdata', {}):
+                                para += escape_xaml(attr.get('footerdata', {})[k])
+                                ok = True
+                                break
+                        if not ok:
+                            para += escape_xaml(url[-1])
+                        continue
+                    elif attr.get('footer') and url.startswith('attr!'):
+                        para += {
+                            'version': VERSION,
+                            'name': NAME,
+                        }.get(url[5:], '')
+                        continue
                     # 复制文本
                     else:
                         t = f'body/para/event_btn'
@@ -241,7 +287,7 @@ def build_file():
                         'title': data_to_text(token['children'])
                     })
         return para
-    def analysis_level(level_tokens, **kwargs):
+    def analysis_level(level_tokens, **attr):
         body = ''
         for tokenindex, token in enumerate(level_tokens, start=1):
             match token['type']:
@@ -249,19 +295,19 @@ def build_file():
                     t = f'body/h{token['attrs']['level']}'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
+                        'content':analysis_para(token['children'], **attr)
                     })
                 case 'paragraph':
                     t = f'body/para'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
+                        'content':analysis_para(token['children'], **attr)
                     })
                 case 'block_text':
                     t = f'body/para'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'content':analysis_para(token['children'])
+                        'content':analysis_para(token['children'], **attr)
                     })
                 case 'block_quote':
                     if len(token['children'][0].get('children', [])) > 0:
@@ -277,7 +323,7 @@ def build_file():
                         t = f'body/quote/main'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'content':analysis_level(token['children'])
+                        'content':analysis_level(token['children'], **attr)
                     })
                 case 'list':
                     if token['attrs']['ordered']:
@@ -286,13 +332,13 @@ def build_file():
                         t = f'body/list'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'items':analysis_level(token['children'])
+                        'items':analysis_level(token['children'], **attr)
                     })
                 case 'list_item':
                     t = 'body/list/item'
                     load_template(t)
                     body += replaces(templates[t],{
-                        'content':analysis_level(token['children'])
+                        'content':analysis_level(token['children'], **attr)
                     })
                 case 'block_code':
                     h_lang = 'info' in token.get('attrs',{})
@@ -322,11 +368,11 @@ def build_file():
                     if h_lang:
                         body += replaces(templates[t],{
                             'lang':token['attrs']['info'],
-                            'content':analysis_para(para_content)
+                            'content':analysis_para(para_content, **attr)
                         })
                     else:
                         body += replaces(templates[t],{
-                            'content':analysis_para(para_content)
+                            'content':analysis_para(para_content, **attr)
                         })
                 case 'thematic_break':
                     t = f'body/hr'
@@ -339,7 +385,7 @@ def build_file():
                         'content':analysis_para([{
                             'raw': token['raw'],
                             'type': 'text'
-                        }])
+                        }], **attr)
                     })
                 case 'table':
                     t = [
@@ -359,16 +405,16 @@ def build_file():
 
                     body += replaces(templates[t[0]],{
                         'head-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
-                        'head-items':analysis_level(t_head['children'], table_type='head'),
+                        'head-items':analysis_level(t_head['children'], table_type='head', **attr),
                         'body-row-definitions':' '.join([templates[t[2]]] * len(t_body['children'])),
                         'body-column-definitions':' '.join([templates[t[1]]] * len(t_head['children'])),
                         'body-items':' '.join([
-                            analysis_level(row['children'], table_type='body', table_bottom=(rowindex==len(t_body['children'])), table_row=rowindex-1)
+                            analysis_level(row['children'], table_type='body', table_bottom=(rowindex==len(t_body['children'])), table_row=rowindex-1, **attr)
                             for rowindex, row in enumerate(t_body['children'], start=1)
                         ]),
                     })
                 case 'table_cell':
-                    if kwargs.get('table_type') == 'head':
+                    if attr.get('table_type') == 'head':
                         if tokenindex == 1:
                             t = f'body/table/head/left'
                         elif tokenindex == len(level_tokens):
@@ -378,10 +424,10 @@ def build_file():
                         load_template(t)
                         body += replaces(templates[t],{
                             'column-index':tokenindex-1,
-                            'content':analysis_para(token['children'])
+                            'content':analysis_para(token['children'], **attr)
                         })
-                    elif kwargs.get('table_type') == 'body':
-                        if kwargs.get('table_bottom'):
+                    elif attr.get('table_type') == 'body':
+                        if attr.get('table_bottom'):
                             if tokenindex == 1:
                                 t = f'body/table/body/left'
                             elif tokenindex == len(level_tokens):
@@ -398,8 +444,8 @@ def build_file():
                         load_template(t)
                         body += replaces(templates[t],{
                             'column-index':tokenindex-1,
-                            'row-index':kwargs.get('table_row'),
-                            'content':analysis_para(token['children'])
+                            'row-index':attr.get('table_row'),
+                            'content':analysis_para(token['children'], **attr)
                         })
         return body
     
@@ -459,10 +505,11 @@ def build_file():
         return replaces(templates['sidebar/tag'],{
             'tags': output
         })
-    def footer_xaml():
-        return replaces(templates['sidebar/footer'],{
-            'version':VERSION
-        })
+    def footer_xaml(post = {}):
+        if 'footer' in docconfig:
+            return analysis_level(markdown(docconfig['footer']), footer=True, footerdata=post)
+        else:
+            return None
 
     def analysis_contents(contents=base_contents, namepath=''):
         global entrance
@@ -529,8 +576,7 @@ def build_file():
             body = analysis_level(markdown(raw_data))
 
             # 页脚
-            load_template('sidebar/footer')
-            footer = footer_xaml()
+            footer = footer_xaml(content.get('post', {}))
 
             # 标签
             if doc_tags:
@@ -543,7 +589,8 @@ def build_file():
                 'tag':tags,
                 'body':body,
                 'name':NAME,
-                'footer':footer
+                'footer':footer if footer else '',
+                'vfooter':'Visible' if footer else 'Collapsed'
             })
 
             if not content.get('mainpage'):
@@ -587,7 +634,8 @@ def build_file():
                 'tag':tags,
                 'body':body,
                 'name':NAME,
-                'footer':footer
+                'footer':footer if footer else '',
+                'vfooter':'Visible' if footer else 'Collapsed'
             })
             with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.xaml'), 'w', encoding='utf-8') as f:
                 f.write(page)
