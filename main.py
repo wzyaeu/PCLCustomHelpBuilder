@@ -10,7 +10,7 @@ from urllib.parse import unquote
 BASE_PATH = os.path.dirname(__file__)
 templates = {}
 entrance = False
-VERSION = 'v0.1'
+VERSION = 'v1.0.0-正式版'
 
 def escape_xaml(text, **kwargs):
     if text is None:
