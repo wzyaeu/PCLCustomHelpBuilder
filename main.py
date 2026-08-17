@@ -85,7 +85,7 @@ def load_contents():
                 continue
             item_path = os.path.join(contents_path, item)
             if os.path.isfile(item_path) and item.endswith('.md'):
-                if item == 'index.md' and path != '':
+                if (item == 'index.md' and path != '') or os.path.exists(os.path.join(contents_path, item[:-3])):
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
@@ -96,6 +96,18 @@ def load_contents():
                     'tags': post.get('tags', []),
                     'index': post.get('index', 0),
                 })
+                if not isinstance(post.get('visiable', True), bool):
+                    logging.error(f'Visiable错误: {path+item}: {post.get('visiable', True)}')
+                    exit()
+                if not isinstance(post.get('entrance', False), bool):
+                    logging.error(f'Entrance错误: {path+item}: {post.get('entrance', True)}')
+                    exit()
+                if not isinstance(post.get('tags', []), list):
+                    logging.error(f'Tags列表错误: {path+item}: {post.get('tags', [])}')
+                    exit()
+                if not isinstance(post.get('index', 0), int):
+                    logging.error(f'Index错误: {path+item}: {post.get('index', 0)}')
+                    exit()
                 for t in post.get('tags', []): # type: ignore
                     if t not in doc_tags:
                         doc_tags[t] = []
@@ -119,12 +131,17 @@ def load_contents():
                     'sub': load_path(path+item+'/', path+config.get('name', item)+'/'),
                     'index': index_config.get('index', config.get('index', 0)),
                 })
+                if not isinstance(config.get('visiable', True), bool):
+                    logging.error(f'Visiable错误: {path+item}: {config.get('visiable', True)}')
+                    exit()
+                if not isinstance(config.get('index', config.get('index', 0)), int):
+                    logging.error(f'Index错误: {path+item}: {config.get('index', config.get('index', 0))}')
+                    exit()
         return output
     try:    
         base_contents = load_path()
     except Exception as e:
         logging.error(f'加载 contents 时发生错误: {e}')
-        raise
         exit()
 
 def build_file():
