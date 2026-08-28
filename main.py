@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import shutil
 import datetime
@@ -11,6 +12,8 @@ BASE_PATH = os.path.dirname(__file__)
 templates = {}
 entrance = False
 VERSION = 'v1.0.0-正式版'
+
+create_markdown = lambda: mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
 def escape_xaml(text, **attr):
     if text is None:
@@ -143,10 +146,28 @@ def load_contents():
     def load_config():
         global docconfig
         docconfig = {}
-        if os.path.exists(os.path.join(BASE_PATH, 'docs', '.config', 'footer.md')):
+        if os.path.isfile(os.path.join(BASE_PATH, 'docs', '.config', 'footer.md')):
             logging.info('找到页脚文件')
             with open(os.path.join(BASE_PATH, 'docs', '.config', 'footer.md'), 'r', encoding='utf-8') as f:
                 docconfig['footer'] = f.read()
+    def load_doctemplate():
+        global doc_templates
+        doc_templates = {}
+        if os.path.isdir(os.path.join(BASE_PATH, 'docs', '.template')):
+            doc_templates_path = os.path.join(BASE_PATH, 'docs', '.template')
+            for root, dirs, files in os.walk(doc_templates_path):
+                for file in files:
+                    if not file.endswith('.md'):
+                        continue
+                    file_path = os.path.join(root, file)
+                    xd_path = os.path.join(os.path.relpath(root, doc_templates_path), file)
+                    if xd_path.startswith('.'):
+                        xd_path = xd_path[1:]
+                    else:
+                        xd_path = '/'+xd_path
+                    xd_path = xd_path.replace('\\', '/')
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        doc_templates[xd_path] = f.read()
     try:    
         base_contents = load_path()
     except Exception as e:
@@ -157,12 +178,35 @@ def load_contents():
     except Exception as e:
         logging.error(f'加载 config 时发生错误: {e}')
         exit()
+    try:    
+        load_doctemplate()
+    except Exception as e:
+        logging.error(f'加载 doc template 时发生错误: {e}')
+        exit()
 
 def build_file():
     logging.info('开始生成输出文件')
     shutil.rmtree('output',ignore_errors=True)
     os.makedirs('output', exist_ok=True)
-    markdown = mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
+    markdown = create_markdown()
+    def replace_doc_template(raw: str):
+        data = raw.splitlines()
+        if len(data) == 0:
+            return ''
+        tpl_name = data[0]
+        tpl_doc_name = '/'+tpl_name+'.md'
+        if tpl_doc_name not in doc_templates:
+            return ''
+
+        p = {}
+        for parameter in data[1:]:
+            if '=' not in parameter:
+                continue
+            k, v = parameter.split('=', maxsplit=1)
+            p[k] = v
+
+        tpl_token = markdown(doc_templates[tpl_doc_name])
+        return analysis_level(tpl_token, doc_template=True, doc_template_p=p)
     def analysis_para(para_data, **attr):
         def data_to_text(link_data):
             raw = ''
@@ -260,6 +304,18 @@ def build_file():
                         if not ok:
                             para += escape_xaml(url[-1])
                         continue
+                    # 文档模板参数占位符
+                    elif url.startswith('doctemplate!') and attr.get('doc_template', False):
+                        url = url[5:].split('!')
+                        ok = False
+                        for k in url[:-1]:
+                            if k in attr.get('doc_template_p', {}):
+                                para += escape_xaml(attr.get('doc_template_p', {})[k])
+                                ok = True
+                                break
+                        if not ok:
+                            para += escape_xaml(url[-1])
+                        continue
                     elif attr.get('footer') and url.startswith('attr!'):
                         para += {
                             'version': VERSION,
@@ -341,7 +397,27 @@ def build_file():
                         'content':analysis_level(token['children'], **attr)
                     })
                 case 'block_code':
+                    def block_code_replace_placeholder(data):
+                        if data.startswith('doctemplate!') and attr.get('doc_template', False):
+                            data = data[5:].split('!')
+                            print(data[1:-1], attr.get('doc_template_p', {}))
+                            if len(data) == 2:
+                                if data[1] in attr.get('doc_template_p', {}):
+                                    return escape_xaml(attr.get('doc_template_p', {})[data[1]])
+                                else:
+                                    return ''
+                            for k in data[1:-1]:
+                                if k in attr.get('doc_template_p', {}):
+                                    return escape_xaml(attr.get('doc_template_p', {})[k])
+                            return escape_xaml(data[-1])
+                        else:
+                            return ''
                     h_lang = 'info' in token.get('attrs',{})
+                    token['raw'] = re.sub(
+                        r'\{\{([^}]+)\}\}', 
+                        lambda m: block_code_replace_placeholder(m.group(1)),
+                        token['raw']
+                    )
                     if h_lang:
                         if token['attrs']['info'] == 'xaml' and token['raw'].startswith('<!-- pcl -->'):
                             t = f'body/source_code'
@@ -349,6 +425,9 @@ def build_file():
                             body += replaces(templates[t],{
                                 'content':token['raw']
                             })
+                            continue
+                        if token['attrs']['info'] == 'template':
+                            body += replace_doc_template(token['raw'])
                             continue
                         t = f'body/codeblock_lang'
                     else:
