@@ -186,7 +186,15 @@ def load_contents():
 
 def build_file():
     logging.info('开始生成输出文件')
-    shutil.rmtree('output',ignore_errors=True)
+    if os.path.isdir('output'):
+        for entry in os.listdir('output'):
+            entry_path = os.path.join('output', entry)
+            if entry.startswith('.'):
+                continue
+            if os.path.isdir(entry_path) and not os.path.islink(entry_path):
+                shutil.rmtree(entry_path, ignore_errors=True)
+            else:
+                os.remove(entry_path)
     os.makedirs('output', exist_ok=True)
     markdown = create_markdown()
     def replace_doc_template(raw: str):
