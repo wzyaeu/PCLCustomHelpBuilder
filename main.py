@@ -66,7 +66,7 @@ def load_config():
                 'output_url': '',
             }
             with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f)
+                json.dump(config, f, ensure_ascii=False)
     except BaseException as e:
         logging.error(f'加载配置失败: {e}')
         exit()
@@ -685,7 +685,7 @@ def build_file():
                 with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'.xaml'), 'w', encoding='utf-8') as f:
                     f.write(page)
                 with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'.json'), 'w', encoding='utf-8') as f:
-                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}))
+                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}, ensure_ascii=False))
             
             if content.get('entrance') or (content.get('mainpage') and not entrance):
                 if entrance:
@@ -695,7 +695,7 @@ def build_file():
                 with open(os.path.join(BASE_PATH, 'output', 'Custom.xaml'), 'w', encoding='utf-8') as f:
                     f.write(page)
                 with open(os.path.join(BASE_PATH, 'output', 'Custom.json'), 'w', encoding='utf-8') as f:
-                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}))
+                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}, ensure_ascii=False))
 
             if content.get('sub',[]) and not content.get('mainpage'):
                 analysis_contents(content['sub'], namepath+doc_name+'/')
@@ -727,7 +727,7 @@ def build_file():
             with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.xaml'), 'w', encoding='utf-8') as f:
                 f.write(page)
             with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.json'), 'w', encoding='utf-8') as f:
-                f.write(json.dumps({'Title':f'{NAME} | 标签 {t}'}))
+                f.write(json.dumps({'Title':f'{NAME} | 标签 {t}'}, ensure_ascii=False))
     def copy_public_file():
         logging.info('开始复制public文件')
         shutil.copytree(os.path.join(BASE_PATH, 'public'), os.path.join(BASE_PATH, 'output/.public'), dirs_exist_ok=True)
