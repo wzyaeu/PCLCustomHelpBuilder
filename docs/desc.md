@@ -1,7 +1,14 @@
 ---
 title: "介绍"
-entrance: true
+entrance: false
+index: 0
 ---
+
+```template
+github/repo
+userid=130191110
+repo=wzyaeu/PCLCustomHelpBuilder
+```
 
 # PCLCustomHelpBuilder
 
@@ -28,6 +35,17 @@ By Wzyaeu | Powered by PCL
 由 PCL 提供支持: [Meloong-Git/PCL](https://github.com/Meloong-Git/PCL)
 
 部分XAML模板文件引用了 PCL2 新闻主页 中的内容，在 CC BY-NC-SA 3.0 协议下规范使用: [Light-Beacon/PCL2-NewsHomepage](https://github.com/Light-Beacon/PCL2-NewsHomepage)
+
+```template
+github/repo
+userid=74000668
+repo=Meloong-Git/PCL
+```
+```template
+github/repo
+userid=49828867
+repo=Light-Beacon/PCL2-NewsHomepage
+```
 
 ## 协议
 

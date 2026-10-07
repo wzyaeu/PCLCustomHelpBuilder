@@ -15,7 +15,7 @@ VERSION = 'v1.0.0-正式版'
 
 create_markdown = lambda: mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
-def escape_xaml(text, **attr):
+def escape_xaml(text, attr: dict = {}):
     if text is None:
         return ''
     b = text.replace('&', '&amp;')\
@@ -24,6 +24,10 @@ def escape_xaml(text, **attr):
     .replace('"', '&quot;')\
     .replace("'", '&apos;')\
     .replace("{", '&#x7B;')\
+    .replace("}", '&#x7D;')\
+
+    for o, n in attr.items():
+        b = b.replace(o, n)
 
     return b
 
@@ -82,13 +86,13 @@ def load_contents():
         global doc_tags
         output = []
         contents_path = os.path.join(BASE_PATH, 'docs', path)
-        items = os.listdir(contents_path)
+        items = sorted(os.listdir(contents_path), key=lambda f: os.path.isfile(os.path.join(contents_path, f)))
         for item in items:
             if item.startswith('.'):
                 continue
             item_path = os.path.join(contents_path, item)
             if os.path.isfile(item_path) and item.endswith('.md'):
-                if (item == 'index.md' and path != '') or os.path.exists(os.path.join(contents_path, item[:-3])):
+                if os.path.exists(os.path.join(contents_path, item[:-3])):
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
@@ -115,24 +119,29 @@ def load_contents():
                 for t in post.get('tags', []): # type: ignore
                     if t not in doc_tags:
                         doc_tags[t] = []
-                    doc_tags[t].append(docpath+post.get('name', item[:-3])) # type: ignore
+                    doc_tags[t].append(docpath+post.get('title', post.get('name', item[:-3]))) # type: ignore
             elif os.path.isdir(item_path):
-                if os.path.exists(os.path.join(item_path, 'config.json')):
-                    with open(os.path.join(item_path, 'config.json'), 'r', encoding='utf-8') as f:
+                if os.path.exists(os.path.join(item_path, '_config.json')):
+                    with open(os.path.join(item_path, '_config.json'), 'r', encoding='utf-8') as f:
                         doc_config = json.load(f)
                 else:
                     doc_config = {}
-                have_index_file = os.path.exists(os.path.join(contents_path, f'{item}.md'))
-                if have_index_file:
-                    index_config = frontmatter.load(os.path.join(contents_path, f'{item}.md')).metadata
+                if os.path.exists(os.path.join(contents_path, f'{item}', 'index.md')):
+                    index_file = os.path.join(contents_path, f'{item}', 'index.md')
+                elif os.path.exists(os.path.join(contents_path, f'{item}.md')):
+                    index_file = os.path.join(contents_path, f'{item}.md')
+                else:
+                    index_file = None
+                if index_file:
+                    index_config = frontmatter.load(index_file).metadata
                 else:
                     index_config = {}
                 output.append({
                     'name': index_config.get('name', doc_config.get('name', item)),
-                    'file': os.path.join(contents_path, f'{item}.md') if have_index_file else False,
+                    'file': index_file if index_file else False,
                     'folded': doc_config.get('folded', False),
                     'visiable': doc_config.get('visiable', True),
-                    'sub': load_path(path+item+'/', path+doc_config.get('name', item)+'/'),
+                    'sub': load_path(path+item+'/', docpath+str(index_config.get('name', doc_config.get('name', item)))+'/'),
                     'index': index_config.get('index', doc_config.get('index', 0)),
                     'post': {**index_config, **doc_config}
                 })
@@ -186,17 +195,11 @@ def load_contents():
 
 def build_file():
     logging.info('开始生成输出文件')
-    if os.path.isdir('output'):
-        for entry in os.listdir('output'):
-            entry_path = os.path.join('output', entry)
-            if entry.startswith('.'):
-                continue
-            if os.path.isdir(entry_path) and not os.path.islink(entry_path):
-                shutil.rmtree(entry_path, ignore_errors=True)
-            else:
-                os.remove(entry_path)
-    os.makedirs('output', exist_ok=True)
+    shutil.rmtree(os.path.join(BASE_PATH, 'output'), ignore_errors=True)
+    os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
     markdown = create_markdown()
+    load_template('page_resources')
+
     def replace_doc_template(raw: str):
         data = raw.splitlines()
         if len(data) == 0:
@@ -269,7 +272,7 @@ def build_file():
                     t = f'body/para/inlinecode'
                     load_template(t)
                     para += replaces(templates[t],{
-                        'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:], no_cb=True)
+                        'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:])
                     })
                 case 'link':
                     url = unquote(token['attrs']['url'])
@@ -277,10 +280,6 @@ def build_file():
                     if url.startswith('http://') or url.startswith('https://'):
                         t = f'body/para/event_btn'
                         url = ['打开网页', url]
-                    # 帮助页
-                    elif url.startswith('help!'):
-                        t = f'body/para/event_btn'
-                        url = ['打开帮助', url[5:]]
                     # 自定义功能按钮
                     elif url.startswith('event!'):
                         t = f'body/para/event_btn'
@@ -408,7 +407,6 @@ def build_file():
                     def block_code_replace_placeholder(data):
                         if data.startswith('doctemplate!') and attr.get('doc_template', False):
                             data = data[5:].split('!')
-                            print(data[1:-1], attr.get('doc_template_p', {}))
                             if len(data) == 2:
                                 if data[1] in attr.get('doc_template_p', {}):
                                     return escape_xaml(attr.get('doc_template_p', {})[data[1]])
@@ -455,10 +453,12 @@ def build_file():
                     if h_lang:
                         body += replaces(templates[t],{
                             'lang':token['attrs']['info'],
+                            'code':escape_xaml(token['raw'], {'\n':'&#xA;'}),
                             'content':analysis_para(para_content, **attr)
                         })
                     else:
                         body += replaces(templates[t],{
+                            'code':escape_xaml(token['raw'], {'\n':'&#xA;'}),
                             'content':analysis_para(para_content, **attr)
                         })
                 case 'thematic_break':
@@ -672,6 +672,7 @@ def build_file():
                 tags = ''
 
             page = replaces(templates['page'],{
+                'page_resources': templates['page_resources'],
                 'contents':contents_xaml(namepath+(doc_name if not content.get('mainpage') else '')),
                 'tag':tags,
                 'body':body,
@@ -713,10 +714,10 @@ def build_file():
             ))
             body = analysis_level(markdown(raw_data))
             tags = tags_xaml(hold=t)
-            load_template('sidebar/footer')
             footer = footer_xaml()
 
             page = replaces(templates['page'],{
+                'page_resources': templates['page_resources'],
                 'contents':contents_xaml(''),
                 'tag':tags,
                 'body':body,
@@ -724,6 +725,7 @@ def build_file():
                 'footer':footer if footer else '',
                 'vfooter':'Visible' if footer else 'Collapsed'
             })
+            os.makedirs(os.path.join(BASE_PATH, 'output', '.tags'), exist_ok=True)
             with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.xaml'), 'w', encoding='utf-8') as f:
                 f.write(page)
             with open(os.path.join(BASE_PATH, 'output', '.tags', f'{t}.json'), 'w', encoding='utf-8') as f:
@@ -764,8 +766,8 @@ def setup_logging():
 
 def main():
     logging.info('主程序开始')
-    os.makedirs('public', exist_ok=True)
-    os.makedirs('output', exist_ok=True)
+    os.makedirs(os.path.join(BASE_PATH, 'public'), exist_ok=True)
+    os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
     load_config()
     load_contents()
     build_file()

@@ -1,1 +1,16 @@
-<BlockUIContainer><ContentControl Template="{StaticResource CodeBlock}"><FlowDocumentScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" Focusable="False"><FlowDocument FontSize="13" FontFamily="Consolas, Cascadia Mono, SimSun" Foreground="{DynamicResource ColorBrush4}"><Paragraph xml:space="preserve">{content}</Paragraph></FlowDocument></FlowDocumentScrollViewer></ContentControl></BlockUIContainer> 
+<BlockUIContainer>
+    <ContentControl Template="{StaticResource CodeBlock}">
+        <ContentControl.DataContext>
+            <sys:String xml:space="preserve">{code}</sys:String>
+        </ContentControl.DataContext>
+        <FlowDocumentScrollViewer VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Hidden"
+                                  Focusable="False">
+            <FlowDocument FontSize="13"
+                          FontFamily="Consolas, Cascadia Mono, SimSun"
+                          Foreground="{DynamicResource ColorBrush4}">
+                <Paragraph xml:space="preserve">{content}</Paragraph>
+            </FlowDocument>
+        </FlowDocumentScrollViewer>
+    </ContentControl>
+</BlockUIContainer> 

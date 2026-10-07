@@ -1,6 +1,6 @@
 ---
 title: "配置文件"
-index: 2
+index: 0
 ---
 
 # 配置文件
@@ -10,6 +10,12 @@ index: 2
 > [tip]
 > 若没有配置文件，运行时会自动生成初始配置：
 > ```json
+> {
+>   "name": "PCLCustomHelpBuilder",
+>   "output_url": ""
+> }
+> ```
+> ```
 > {
 >   "name": "PCLCustomHelpBuilder",
 >   "output_url": ""

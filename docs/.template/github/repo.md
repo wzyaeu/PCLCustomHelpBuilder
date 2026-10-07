@@ -1,6 +1,6 @@
 ```xaml
 <!-- pcl -->
-<local:MyCard Margin="0,0,0,3">
+<local:MyCard Margin="0,5">
     <StackPanel Margin="15">
         <StackPanel Orientation="Horizontal">
             <Border CornerRadius="17"

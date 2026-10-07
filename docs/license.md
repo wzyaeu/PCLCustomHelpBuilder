@@ -1,5 +1,6 @@
 ---
 title: "协议"
+index: 1
 ---
 ```
 Attribution-NonCommercial 4.0 International

@@ -1,6 +1,8 @@
 ---
 title: "排除文档"
-index: 4
+index: 2
+tags: 
+    - 'a'
 ---
 
 # 排除文档

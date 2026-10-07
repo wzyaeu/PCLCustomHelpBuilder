@@ -1,6 +1,6 @@
 ---
 title: "页脚"
-index: 3
+index: 4
 ---
 
 # 页脚
@@ -28,7 +28,7 @@ index: 3
 [](post!{attr1}!{attr2}!...!{default})
 ```
 
-`[](post!{attr})`格式用于获取文章元数据，例如元数据
+`[](post!{attr})`格式用于获取文章元数据，例如元数据：
 ```markdown
 ---
 docattr: aaa
@@ -38,7 +38,7 @@ docattr: aaa
 
 ---
 
-`[](post!{attr}!{default})`格式用于获取文章元数据并指定默认文本，例如元数据
+`[](post!{attr}!{default})`格式用于获取文章元数据并指定默认文本，例如元数据：
 ```markdown
 ---
 docattr1: a1
@@ -48,7 +48,7 @@ docattr1: a1
 
 ---
 
-`[](post!{attr1}!{attr2}!...!{default})`格式用于文章元数据更复杂的获取，根据顺序依次获取。例如元数据
+`[](post!{attr1}!{attr2}!...!{default})`格式用于文章元数据更复杂的获取，根据顺序依次获取。例如元数据：
 ```markdown
 ---
 docattr1: a1
@@ -72,4 +72,4 @@ docattr2: a2
 - `name`: PCLCustomHelpBuilder的名称。
 - `version`: PCLCustomHelpBuilder的版本。
 
-例如`[](attr!name)`替换为`PCLCustomHelpBuilder`
+例如`[](attr!name)`替换为`PCLCustomHelpBuilder`。
