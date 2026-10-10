@@ -11,7 +11,7 @@ from urllib.parse import unquote
 BASE_PATH = os.path.dirname(__file__)
 templates = {}
 entrance = False
-VERSION = 'v1.0.0-正式版'
+VERSION = 'v1.1.0-beta.1'
 
 create_markdown = lambda: mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
@@ -96,7 +96,7 @@ def load_contents():
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
-                    'name': post.get('title', post.get('name', item[:-3])),
+                    'name': post.get('title', item[:-3]),
                     'file': path+item,
                     'visiable': post.get('visiable', True),
                     'entrance': post.get('entrance', False),
@@ -119,15 +119,15 @@ def load_contents():
                 for t in post.get('tags', []): # type: ignore
                     if t not in doc_tags:
                         doc_tags[t] = []
-                    doc_tags[t].append(docpath+post.get('title', post.get('name', item[:-3]))) # type: ignore
+                    doc_tags[t].append(docpath+post.get('title', item[:-3])) # type: ignore
             elif os.path.isdir(item_path):
                 if os.path.exists(os.path.join(item_path, '_config.json')):
                     with open(os.path.join(item_path, '_config.json'), 'r', encoding='utf-8') as f:
                         doc_config = json.load(f)
                 else:
                     doc_config = {}
-                if os.path.exists(os.path.join(contents_path, f'{item}', 'index.md')):
-                    index_file = os.path.join(contents_path, f'{item}', 'index.md')
+                if os.path.exists(os.path.join(contents_path, f'{item}', '_index.md')):
+                    index_file = os.path.join(contents_path, f'{item}', '_index.md')
                 elif os.path.exists(os.path.join(contents_path, f'{item}.md')):
                     index_file = os.path.join(contents_path, f'{item}.md')
                 else:
@@ -137,11 +137,11 @@ def load_contents():
                 else:
                     index_config = {}
                 output.append({
-                    'name': index_config.get('name', doc_config.get('name', item)),
+                    'name': index_config.get('title', doc_config.get('name', item)),
                     'file': index_file if index_file else False,
                     'folded': doc_config.get('folded', False),
                     'visiable': doc_config.get('visiable', True),
-                    'sub': load_path(path+item+'/', docpath+str(index_config.get('name', doc_config.get('name', item)))+'/'),
+                    'sub': load_path(path+item+'/', docpath+str(index_config.get('title', doc_config.get('name', item)))+'/'),
                     'index': index_config.get('index', doc_config.get('index', 0)),
                     'post': {**index_config, **doc_config}
                 })
