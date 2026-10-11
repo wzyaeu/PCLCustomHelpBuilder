@@ -9,6 +9,6 @@ index: 4
 
 推荐在页脚中写：
 ```
-本项目由 PCLCustomHelpBuilder 驱动
+本项目由 PCLCustomHelpBuilder 驱动。
 ```
 亦或者是其他清晰、不易混淆、上下文非冒犯性的地方。

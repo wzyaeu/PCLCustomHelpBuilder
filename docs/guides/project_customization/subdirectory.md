@@ -28,7 +28,7 @@ index: 2
 
 ## `tiering`
 
-是否分级，默认为`false`。参阅[分级目录](/指南/项目特性/分级目录)。`tiering`为`true`时，`folded`强制为`true`。
+是否分级，默认为`false`。参阅[分级目录](/指南/项目定制/分级目录)。`tiering`为`true`时，`folded`强制为`true`。
 
 ## `index`
 

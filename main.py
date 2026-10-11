@@ -94,7 +94,7 @@ def load_contents():
             format_item = item.replace(' ', '_')
             item_path = os.path.join(contents_path, item)
             if os.path.isfile(item_path) and item.endswith('.md'):
-                if os.path.exists(os.path.join(contents_path, item[:-3])):
+                if os.path.exists(os.path.join(contents_path, item[:-3])) or item == '_index.md':
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
@@ -300,18 +300,6 @@ def build_docs():
                         para += replaces(templates[t],{
                             'content':data_to_text(token['children'])
                         })
-                        continue
-                    # 页脚
-                    elif attr.get('footer') and url.startswith('post!'):
-                        url = url[5:].split('!')
-                        ok = False
-                        for k in url[:-1]:
-                            if k in attr.get('footerdata', {}):
-                                para += escape_xaml(attr.get('footerdata', {})[k])
-                                ok = True
-                                break
-                        if not ok:
-                            para += escape_xaml(url[-1])
                         continue
                     # 文档模板参数占位符
                     elif url.startswith('doctemplate!') and attr.get('doc_template', False):
