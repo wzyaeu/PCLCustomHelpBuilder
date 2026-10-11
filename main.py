@@ -145,6 +145,7 @@ def load_contents():
                     'sub': load_path(path+item+'/', docpath+str(index_config.get('title', doc_config.get('name', format_item)))+'/'),
                     'index': index_config.get('index', doc_config.get('index', 0)),
                     'tiering': doc_config.get('tiering', False),
+                    'tags': index_config.get('tags', doc_config.get('tags', [])),
                     'docpath': docpath
                 })
                 if not isinstance(doc_config.get('visiable', True), bool):
