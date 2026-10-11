@@ -1,0 +1,41 @@
+<Border CornerRadius="5"
+        Margin="{indent},5,0,0">
+    <Border.Style>
+        <Style TargetType="Border">
+            <Setter Property="Background"
+                    Value="{DynamicResource ColorBrush4}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver"
+                        Value="True">
+                    <Setter Property="Background"
+                            Value="{DynamicResource ColorBrush5}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Border.Style>
+    <Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Margin="5"
+                    VerticalAlignment="Center"
+                    FontSize="15"
+                    Foreground="{DynamicResource ColorBrush8}"
+                    Text="{name}"/>
+            <Path Margin="0,0,10,0"
+                    Grid.Column="2"
+                    Width="15"
+                    Height="15"
+                    VerticalAlignment="Center"
+                    Stretch="Uniform"
+                    Fill="{DynamicResource ColorBrush8}"
+                    Data="M324.3 960.1l-72.8-72.8L626.9 512 251.5 136.7l72.8-72.8L772.5 512z"/>
+        </Grid>
+        <local:MyButton Opacity="0"
+                EventType="打开帮助"
+                EventData="{url}"/>
+    </Grid>
+</Border>

@@ -6,7 +6,8 @@ import datetime
 import json
 import mistune
 import frontmatter
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
+from typing import Any
 
 BASE_PATH = os.path.dirname(__file__)
 templates = {}
@@ -78,10 +79,10 @@ def load_config():
     OUTPUT_URL = config['output_url']
 
 def load_contents():
-    global base_contents, doc_tags
+    global base_catalogue, doc_tags
     logging.info('开始加载文件布局')
     doc_tags = {}
-    base_contents = []
+    base_catalogue = []
     def load_path(path='', docpath=''):
         global doc_tags
         output = []
@@ -90,19 +91,19 @@ def load_contents():
         for item in items:
             if item.startswith('.'):
                 continue
+            format_item = item.replace(' ', '_')
             item_path = os.path.join(contents_path, item)
             if os.path.isfile(item_path) and item.endswith('.md'):
                 if os.path.exists(os.path.join(contents_path, item[:-3])):
                     continue
                 post = frontmatter.load(item_path)
                 output.append({
-                    'name': post.get('title', item[:-3]),
+                    'name': post.get('title', format_item[:-3]),
                     'file': path+item,
                     'visiable': post.get('visiable', True),
                     'entrance': post.get('entrance', False),
                     'tags': post.get('tags', []),
-                    'index': post.get('index', 0),
-                    'post': post.metadata
+                    'index': post.get('index', 0)
                 })
                 if not isinstance(post.get('visiable', True), bool):
                     logging.error(f'Visiable错误: {path+item}: {post.get('visiable', True)}')
@@ -119,7 +120,7 @@ def load_contents():
                 for t in post.get('tags', []): # type: ignore
                     if t not in doc_tags:
                         doc_tags[t] = []
-                    doc_tags[t].append(docpath+post.get('title', item[:-3])) # type: ignore
+                    doc_tags[t].append(docpath+post.get('title', format_item[:-3])) # type: ignore
             elif os.path.isdir(item_path):
                 if os.path.exists(os.path.join(item_path, '_config.json')):
                     with open(os.path.join(item_path, '_config.json'), 'r', encoding='utf-8') as f:
@@ -137,13 +138,14 @@ def load_contents():
                 else:
                     index_config = {}
                 output.append({
-                    'name': index_config.get('title', doc_config.get('name', item)),
+                    'name': index_config.get('title', doc_config.get('name', format_item)),
                     'file': index_file if index_file else False,
-                    'folded': doc_config.get('folded', False),
+                    'folded': doc_config.get('folded', False) or doc_config.get('tiering', False),
                     'visiable': doc_config.get('visiable', True),
-                    'sub': load_path(path+item+'/', docpath+str(index_config.get('title', doc_config.get('name', item)))+'/'),
+                    'sub': load_path(path+item+'/', docpath+str(index_config.get('title', doc_config.get('name', format_item)))+'/'),
                     'index': index_config.get('index', doc_config.get('index', 0)),
-                    'post': {**index_config, **doc_config}
+                    'tiering': doc_config.get('tiering', False),
+                    'docpath': docpath
                 })
                 if not isinstance(doc_config.get('visiable', True), bool):
                     logging.error(f'Visiable错误: {path+item}: {doc_config.get('visiable', True)}')
@@ -178,7 +180,7 @@ def load_contents():
                     with open(file_path, 'r', encoding='utf-8') as f:
                         doc_templates[xd_path] = f.read()
     try:    
-        base_contents = load_path()
+        base_catalogue = load_path()
     except Exception as e:
         logging.error(f'加载 contents 时发生错误: {e}')
         exit()
@@ -193,7 +195,7 @@ def load_contents():
         logging.error(f'加载 doc template 时发生错误: {e}')
         exit()
 
-def build_file():
+def build_docs():
     logging.info('开始生成输出文件')
     shutil.rmtree(os.path.join(BASE_PATH, 'output'), ignore_errors=True)
     os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
@@ -536,13 +538,34 @@ def build_file():
                         })
         return body
     
-    def contents_xaml(hold_name, path='', indent=0, cdata=base_contents):
+    def catalogue_xaml(doc_name, hold_name, path='', indent=0, cdata=base_catalogue, tiering=False, tiering_pname='', un_tiering_pname=None):
         load_template('sidebar/item')
         load_template('sidebar/item_hold')
         load_template('sidebar/item_more')
+        load_template('sidebar/item_enter')
+        load_template('sidebar/item_hold_enter')
+        load_template('sidebar/item_return')
         output = ''
-        for c in sorted(cdata, key=lambda x: x['index']):
-            if c.get('visiable') or path in hold_name:
+        sorted_content = sorted(cdata, key=lambda x: x['index'])
+        if tiering:
+            sorted_content.insert(0, {
+                'return': True
+            })
+        for c in sorted_content:
+            if c.get('return'):
+                output += replaces(templates['sidebar/item_return'],{
+                    'indent': indent * 20,
+                    'name': '返回',
+                    'url': OUTPUT_URL+path+tiering_pname+'-surfacelayer.json',
+                })
+            elif c.get('visiable') or path in hold_name:
+                if path+c['name'] == un_tiering_pname:
+                    output += replaces(templates['sidebar/item_hold_enter'],{
+                        'indent': indent * 20,
+                        'name': c['name'],
+                        'url': OUTPUT_URL+path+c['name']+'.json',
+                    })
+                    continue
                 if path+c['name'] == hold_name:
                     output += replaces(templates['sidebar/item_hold'],{
                         'indent': indent * 20,
@@ -556,14 +579,21 @@ def build_file():
                             'url': OUTPUT_URL+path+c['name']+'.json',
                         })
                     else:
-                        output += replaces(templates['sidebar/item_more'],{
-                            'indent': indent * 20,
-                            'name': c['name'],
-                            'url': OUTPUT_URL+path+c['name']+'.json',
-                        })
+                        if c.get('tiering'):
+                            output += replaces(templates['sidebar/item_enter'],{
+                                'indent': indent * 20,
+                                'name': c['name'],
+                                'url': OUTPUT_URL+path+c['name']+'.json',
+                            })
+                        else:
+                            output += replaces(templates['sidebar/item_more'],{
+                                'indent': indent * 20,
+                                'name': c['name'],
+                                'url': OUTPUT_URL+path+c['name']+'.json',
+                            })
                 if c.get('sub',[]):
-                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
-                        output += contents_xaml(hold_name, path+c['name']+'/', indent+1, c['sub'])
+                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or (path+c['name'] == hold_name))):
+                        output += catalogue_xaml(doc_name, hold_name, path+c['name']+'/', indent+1, c['sub'], un_tiering_pname=un_tiering_pname)
         return output
     def tags_xaml(hold = None, up = []):
         load_template('sidebar/tag')
@@ -598,15 +628,19 @@ def build_file():
         else:
             return None
 
-    def analysis_contents(contents=base_contents, namepath=''):
+    def analysis_contents(catalogue=base_catalogue, namepath='', tiering_data=None):
         global entrance
         # 层级下生成文件
         occupied_name = []
-        for content in sorted(contents if namepath != '' else contents + [{
+
+        if tiering_data == None:
+            tiering_data = []
+        tiering_level = False
+        for content in sorted(catalogue if namepath != '' else catalogue + [{
             'name': NAME+' 目录', 
             'file': False, 
             'mainpage': True, 
-            'sub': base_contents
+            'sub': base_catalogue
         }], key=lambda x: int(x.get('index', 0))):
             if content.get('mainpage') and entrance:
                 continue
@@ -639,7 +673,7 @@ def build_file():
                         sdoutput = []
                         for sd in sorted(docdata.get('sub',[]), key=lambda x: x['index']):
                             if sd['visiable']:
-                                sdoutput.append(f'- [{sd['name']}](jump!{namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name']})')
+                                sdoutput.append(f'- [{sd['name']}](jump!{quote(namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name'])})')
                                 if 'sub' in sd:
                                     sdoutput.append(_(sd, path+sd['name']+'/'))
                         return sdoutput
@@ -665,6 +699,23 @@ def build_file():
             # 页脚
             footer = footer_xaml(content.get('post', {}))
 
+            # 目录
+            if content.get('tiering'):
+                tiering_data.append({
+                    'pname': content['name'],
+                    'data': content
+                })
+                tiering_level = True
+            in_tiering = len(tiering_data) > 0
+            page_catalogue = catalogue_xaml(
+                doc_name if not content.get('mainpage') else '',
+                namepath+(doc_name if not content.get('mainpage') else ''), 
+                tiering=in_tiering,
+                cdata=[tiering_data[-1]['data']] if in_tiering else base_catalogue,
+                path=tiering_data[-1]['data'].get('docpath') if in_tiering else '',
+                tiering_pname=tiering_data[-1]['pname']  if in_tiering else '',
+            )
+
             # 标签
             if doc_tags:
                 tags = tags_xaml(up=content.get('tags', []))
@@ -673,7 +724,7 @@ def build_file():
 
             page = replaces(templates['page'],{
                 'page_resources': templates['page_resources'],
-                'contents':contents_xaml(namepath+(doc_name if not content.get('mainpage') else '')),
+                'catalogue':page_catalogue,
                 'tag':tags,
                 'body':body,
                 'name':NAME,
@@ -689,6 +740,9 @@ def build_file():
                     f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}, ensure_ascii=False))
             
             if content.get('entrance') or (content.get('mainpage') and not entrance):
+                if content.get('tiering'):
+                    logging.error(f'入口禁止设置嵌套目录: {content['file']}')
+                    exit()
                 if entrance:
                     logging.error(f'contents 多个入口: {content['file']}')
                     exit()
@@ -698,8 +752,34 @@ def build_file():
                 with open(os.path.join(BASE_PATH, 'output', 'Custom.json'), 'w', encoding='utf-8') as f:
                     f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}, ensure_ascii=False))
 
+            if content.get('tiering'):
+                un_tiering_catalogue_page = replaces(templates['page'],{
+                    'page_resources': templates['page_resources'],
+                    'catalogue':catalogue_xaml(
+                        doc_name if not content.get('mainpage') else '',
+                        namepath+(doc_name if not content.get('mainpage') else ''), 
+                        tiering=len(tiering_data) != 1,
+                        cdata=[tiering_data[-2]['data']] if len(tiering_data) != 1 else base_catalogue,
+                        path=tiering_data[-2]['data'].get('docpath') if len(tiering_data) != 1 else '',
+                        tiering_pname=tiering_data[-2]['pname'] if len(tiering_data) != 1 else '',
+                        un_tiering_pname=content.get('docpath')+content.get('name')
+                    ),
+                    'tag':tags,
+                    'body':body,
+                    'name':NAME,
+                    'footer':footer if footer else '',
+                    'vfooter':'Visible' if footer else 'Collapsed'
+                })
+                with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'-surfacelayer.xaml'), 'w', encoding='utf-8') as f:
+                    f.write(un_tiering_catalogue_page)
+                with open(os.path.join(BASE_PATH, 'output', namepath+doc_name+'-surfacelayer.json'), 'w', encoding='utf-8') as f:
+                    f.write(json.dumps({'Title':f'{NAME} | {doc_name}'}, ensure_ascii=False))
+
             if content.get('sub',[]) and not content.get('mainpage'):
-                analysis_contents(content['sub'], namepath+doc_name+'/')
+                analysis_contents(content['sub'], namepath+doc_name+'/', tiering_data=tiering_data)
+            if tiering_level:
+                tiering_data.pop()
+                tiering_level = False
     def analysis_tags():
         load_template('page')
         for t in list(doc_tags.keys()):
@@ -718,7 +798,7 @@ def build_file():
 
             page = replaces(templates['page'],{
                 'page_resources': templates['page_resources'],
-                'contents':contents_xaml(''),
+                'catalogue':catalogue_xaml('', ''),
                 'tag':tags,
                 'body':body,
                 'name':NAME,
@@ -770,7 +850,7 @@ def main():
     os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
     load_config()
     load_contents()
-    build_file()
+    build_docs()
 
 if __name__ == '__main__':
     setup_logging()
