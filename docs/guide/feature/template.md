@@ -1,11 +1,10 @@
 ---
 title: "文档模板"
-tags: ['高级']
 ---
 
 # 文档模板
 
-通过文档模板创建一系列格式相同的段落。
+通过文档模板创建可快速复用的内容。
 
 ## 创建文档模板
 
@@ -15,9 +14,9 @@ tags: ['高级']
 
 文档模板根据在**文档模板目录**的位置确定文档模板名称。
 
-如`文档目录/.template/test.md`的名称为`test`。
+如`docs/.template/test.md`的名称为`test`。
 
-`文档目录/.template/github/repo.md`的名称为`github/repo`。
+`docs/.template/github/repo.md`的名称为`github/repo`。
 
 ## 文档模板语法
 
@@ -34,4 +33,3 @@ tags: ['高级']
 在文档模板的代码块中可使用`{{doctemplate!key}}` `{{doctemplate!key!default}}`格式创建模板语法。
 
 与普通模板语法一样，会在使用文档模板时被替换。
-

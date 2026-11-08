@@ -1,1 +1,1 @@
-<InlineUIContainer BaselineAlignment="Center"><TextBox Style="{StaticResource HiddenText}">{content}</TextBox></InlineUIContainer>
+<InlineUIContainer BaselineAlignment="Center"><Grid><TextBlock Style="{StaticResource HiddenText}">{content}</TextBlock><Border Style="{StaticResource HiddenCover}" Background="{DynamicResource ColorBrush1}" CornerRadius="5"/></Grid></InlineUIContainer>

@@ -1,3 +1,65 @@
+<Style x:Key="H1"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="24"/>
+    <Setter Property="Margin"
+            Value="0,10,0,0"/>
+    <Setter Property="FontWeight"
+            Value="Bold"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush3}"/>
+</Style>
+<Style x:Key="H2"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="22"/>
+    <Setter Property="Margin"
+            Value="0,10,0,0"/>
+    <Setter Property="FontWeight"
+            Value="Bold"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush3}"/>
+</Style>
+<Style x:Key="H3"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="18"/>
+    <Setter Property="Margin"
+            Value="0,10,0,0"/>
+    <Setter Property="FontWeight"
+            Value="Bold"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush4}"/>
+</Style>
+<Style x:Key="H4"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="16"/>
+    <Setter Property="Margin"
+            Value="0,10,0,0"/>
+    <Setter Property="FontWeight"
+            Value="Bold"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush4}"/>
+</Style>
+<Style x:Key="H5"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="14"/>
+    <Setter Property="Margin"
+            Value="0,8,0,0"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush4}"/>
+</Style>
+<Style x:Key="H6"
+        TargetType="Paragraph">
+    <Setter Property="FontSize"
+            Value="12"/>
+    <Setter Property="Margin"
+            Value="0,8,0,0"/>
+    <Setter Property="Foreground"
+            Value="{DynamicResource ColorBrush4}"/>
+</Style>
 <Style TargetType="ListItem">
     <Setter Property="Foreground"
             Value="{DynamicResource ColorBrush1}"/>
@@ -15,7 +77,7 @@
             Value="0"/>
 </Style>
 <Style x:Key="NumberList"
-       TargetType="List">
+        TargetType="List">
     <Setter Property="Foreground"
             Value="{DynamicResource ColorBrush3}"/>
     <Setter Property="Margin"
@@ -62,7 +124,7 @@
             Value="False"/>
 </Style>
 <Style TargetType="TextBox"
-       x:Key="InlineCode">
+        x:Key="InlineCode">
     <Setter Property="FontSize"
             Value="14"/>
     <Setter Property="IsReadOnly"
@@ -81,82 +143,90 @@
                             CornerRadius="5"
                             Opacity="0.1"></Border>
                     <ScrollViewer x:Name="PART_ContentHost"
-                                  Margin="2,1"
-                                  Opacity="0.7"
-                                  HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Hidden"/>
+                            Margin="2,1"
+                            Opacity="0.7"
+                            HorizontalScrollBarVisibility="Hidden"
+                            VerticalScrollBarVisibility="Hidden"/>
                 </Grid>
                 <ControlTemplate.Triggers></ControlTemplate.Triggers>
             </ControlTemplate>
         </Setter.Value>
     </Setter>
 </Style>
-<Style TargetType="TextBox"
-       x:Key="HiddenText">
+<Style TargetType="TextBlock"
+        x:Key="HiddenText">
     <Setter Property="ToolTip"
             Value="你知道的太多了"/>
     <Setter Property="FontSize"
             Value="14"/>
-    <Setter Property="IsReadOnly"
-            Value="True"/>
-    <Setter Property="Margin"
-            Value="1,0"/>
     <Setter Property="Foreground"
             Value="{DynamicResource ColorBrush1}"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="TextBox">
-                <Grid>
-                    <ScrollViewer x:Name="PART_ContentHost"
-                                  HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Hidden"/>
-                    <Border Background="{DynamicResource ColorBrush1}"
-                            CornerRadius="5">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver"
-                                             Value="True">
-                                        <Trigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                     From="1"
-                                                                     To="0"
-                                                                     Duration="0:0:0.1"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </Trigger.EnterActions>
-                                        <Trigger.ExitActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                     From="0"
-                                                                     To="1"
-                                                                     Duration="0:0:0"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </Trigger.ExitActions>
-                                    </Trigger>
-                                    <Trigger Property="IsMouseOver"
-                                             Value="False">
-                                        <Setter Property="Opacity"
-                                                Value="1"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                    </Border>
-                </Grid>
-                <ControlTemplate.Triggers></ControlTemplate.Triggers>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
+    <Setter Property="Margin"
+            Value="1,0"/>
+</Style>
+<Style TargetType="Border"
+        x:Key="HiddenCover">
+    <Setter Property="Opacity"
+            Value="1"/>
+    <Style.Triggers>
+        <Trigger Property="IsMouseOver"
+                Value="True">
+            <Trigger.EnterActions>
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                From="1"
+                                To="0"
+                                Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </Trigger.EnterActions>
+            <Trigger.ExitActions>
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                From="0"
+                                To="1"
+                                Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </Trigger.ExitActions>
+        </Trigger>
+    </Style.Triggers>
+</Style>
+<Style TargetType="Border"
+        x:Key="LinkColorCover">
+    <Setter Property="Opacity"
+            Value="0"/>
+    <Style.Triggers>
+        <Trigger Property="IsMouseOver"
+                Value="True">
+            <Trigger.EnterActions>
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                From="0"
+                                To="1"
+                                Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </Trigger.EnterActions>
+            <Trigger.ExitActions>
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                From="1"
+                                To="0"
+                                Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </Trigger.ExitActions>
+        </Trigger>
+    </Style.Triggers>
 </Style>
 <ControlTemplate x:Key="CodeBlock"
-                 TargetType="ContentControl">
-    <Grid
-        Margin="0,5">
+        TargetType="ContentControl">
+    <Grid Margin="0,5">
         <Border CornerRadius="5"
                 Background="{DynamicResource ColorBrush6}"
                 Padding="0"
@@ -164,22 +234,20 @@
                 BorderThickness="1">
             <ContentPresenter/>
         </Border>
-        <StackPanel
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top">
-            <local:MyIconTextButton
-                Margin="0,10,10,0"
-                Height="35"
-                Text="复制"
-                EventType="复制文本"
-                EventData="{TemplateBinding DataContext}"
-                LogoScale="1"
-                Logo="M441.47 537.05h186.18v59.22H441.47zM441.47 671.04h280.56v59.22H441.47z M685.92 217.95c-0.62-0.65-1.27-1.25-1.93-1.84l-6.85-7.18h-9.52a29.56 29.56 0 0 0-6.31 0h-59.93l1.81-1.73-86.3-90.62H221.06a60.21 60.21 0 0 0-60.15 60.15V742.1a60.21 60.21 0 0 0 60.15 60.15h100.11v32.2a60.21 60.21 0 0 0 60.15 60.15h440.82a60.21 60.21 0 0 0 60.15-60.15V424L746.8 282z m93.95 184.69l-92.81-4.54a0.85 0.85 0 0 1-0.6-0.93l4.25-88.22 12.61 13.22zM221.06 743a1 1 0 0 1-0.93-0.93V176.73a1 1 0 0 1 0.93-0.93h270.45l31.55 33.13H381.32a60.21 60.21 0 0 0-60.15 60.15V743z m601.09 92.35H381.32a1 1 0 0 1-0.93-0.93V269.08a1 1 0 0 1 0.93-0.93h252.07l-6.08 126.27v0.12c-1.46 33.12 24.17 61.25 57 62.71L823.07 464v370.45a1 1 0 0 1-0.93 0.93z"/>
+        <StackPanel HorizontalAlignment="Right"
+                VerticalAlignment="Top">
+            <local:MyIconTextButton Margin="0,10,10,0"
+                    Height="35"
+                    Text="复制"
+                    EventType="复制文本"
+                    EventData="{TemplateBinding DataContext}"
+                    LogoScale="1"
+                    Logo="M441.47 537.05h186.18v59.22H441.47zM441.47 671.04h280.56v59.22H441.47z M685.92 217.95c-0.62-0.65-1.27-1.25-1.93-1.84l-6.85-7.18h-9.52a29.56 29.56 0 0 0-6.31 0h-59.93l1.81-1.73-86.3-90.62H221.06a60.21 60.21 0 0 0-60.15 60.15V742.1a60.21 60.21 0 0 0 60.15 60.15h100.11v32.2a60.21 60.21 0 0 0 60.15 60.15h440.82a60.21 60.21 0 0 0 60.15-60.15V424L746.8 282z m93.95 184.69l-92.81-4.54a0.85 0.85 0 0 1-0.6-0.93l4.25-88.22 12.61 13.22zM221.06 743a1 1 0 0 1-0.93-0.93V176.73a1 1 0 0 1 0.93-0.93h270.45l31.55 33.13H381.32a60.21 60.21 0 0 0-60.15 60.15V743z m601.09 92.35H381.32a1 1 0 0 1-0.93-0.93V269.08a1 1 0 0 1 0.93-0.93h252.07l-6.08 126.27v0.12c-1.46 33.12 24.17 61.25 57 62.71L823.07 464v370.45a1 1 0 0 1-0.93 0.93z"/>
         </StackPanel>
     </Grid>
 </ControlTemplate>
 <ControlTemplate x:Key="CodeBlockWithLanguage"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Grid Margin="0,5">
         <StackPanel>
             <Border CornerRadius="5,5,0,0"
@@ -188,9 +256,9 @@
                     BorderBrush="{DynamicResource ColorBrush4}"
                     BorderThickness="1,1,1,0">
                 <TextBlock Text="{TemplateBinding Tag}"
-                           Margin="10,4"
-                           FontSize="15"
-                           Foreground="{DynamicResource ColorBrush8}"/>
+                        Margin="10,4"
+                        FontSize="15"
+                        Foreground="{DynamicResource ColorBrush8}"/>
             </Border>
             <Border CornerRadius="0,0,5,5"
                     Background="{DynamicResource ColorBrush6}"
@@ -200,22 +268,20 @@
                 <ContentPresenter/>
             </Border>
         </StackPanel>
-        <StackPanel
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top">
-            <local:MyIconTextButton
-                Margin="0,10,10,0"
-                Height="35"
-                Text="复制"
-                EventType="复制文本"
-                EventData="{TemplateBinding DataContext}"
-                LogoScale="1"
-                Logo="M441.47 537.05h186.18v59.22H441.47zM441.47 671.04h280.56v59.22H441.47z M685.92 217.95c-0.62-0.65-1.27-1.25-1.93-1.84l-6.85-7.18h-9.52a29.56 29.56 0 0 0-6.31 0h-59.93l1.81-1.73-86.3-90.62H221.06a60.21 60.21 0 0 0-60.15 60.15V742.1a60.21 60.21 0 0 0 60.15 60.15h100.11v32.2a60.21 60.21 0 0 0 60.15 60.15h440.82a60.21 60.21 0 0 0 60.15-60.15V424L746.8 282z m93.95 184.69l-92.81-4.54a0.85 0.85 0 0 1-0.6-0.93l4.25-88.22 12.61 13.22zM221.06 743a1 1 0 0 1-0.93-0.93V176.73a1 1 0 0 1 0.93-0.93h270.45l31.55 33.13H381.32a60.21 60.21 0 0 0-60.15 60.15V743z m601.09 92.35H381.32a1 1 0 0 1-0.93-0.93V269.08a1 1 0 0 1 0.93-0.93h252.07l-6.08 126.27v0.12c-1.46 33.12 24.17 61.25 57 62.71L823.07 464v370.45a1 1 0 0 1-0.93 0.93z"/>
+        <StackPanel HorizontalAlignment="Right"
+                VerticalAlignment="Top">
+            <local:MyIconTextButton Margin="0,10,10,0"
+                    Height="35"
+                    Text="复制"
+                    EventType="复制文本"
+                    EventData="{TemplateBinding DataContext}"
+                    LogoScale="1"
+                    Logo="M441.47 537.05h186.18v59.22H441.47zM441.47 671.04h280.56v59.22H441.47z M685.92 217.95c-0.62-0.65-1.27-1.25-1.93-1.84l-6.85-7.18h-9.52a29.56 29.56 0 0 0-6.31 0h-59.93l1.81-1.73-86.3-90.62H221.06a60.21 60.21 0 0 0-60.15 60.15V742.1a60.21 60.21 0 0 0 60.15 60.15h100.11v32.2a60.21 60.21 0 0 0 60.15 60.15h440.82a60.21 60.21 0 0 0 60.15-60.15V424L746.8 282z m93.95 184.69l-92.81-4.54a0.85 0.85 0 0 1-0.6-0.93l4.25-88.22 12.61 13.22zM221.06 743a1 1 0 0 1-0.93-0.93V176.73a1 1 0 0 1 0.93-0.93h270.45l31.55 33.13H381.32a60.21 60.21 0 0 0-60.15 60.15V743z m601.09 92.35H381.32a1 1 0 0 1-0.93-0.93V269.08a1 1 0 0 1 0.93-0.93h252.07l-6.08 126.27v0.12c-1.46 33.12 24.17 61.25 57 62.71L823.07 464v370.45a1 1 0 0 1-0.93 0.93z"/>
         </StackPanel>
     </Grid>
 </ControlTemplate>
 <ControlTemplate x:Key="Table"
-                 TargetType="HeaderedContentControl">
+        TargetType="HeaderedContentControl">
     <StackPanel Margin="0,5">
         <Border CornerRadius="5,5,0,0">
             <ContentPresenter Content="{TemplateBinding Header}"/>
@@ -226,7 +292,7 @@
     </StackPanel>
 </ControlTemplate>
 <ControlTemplate x:Key="TableHeadLeft"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border CornerRadius="5,0,0,0"
             Background="{DynamicResource ColorBrush5}"
             BorderBrush="{DynamicResource ColorBrush4}"
@@ -239,7 +305,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableHead"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Background="{DynamicResource ColorBrush5}"
             BorderBrush="{DynamicResource ColorBrush4}"
             BorderThickness="0,1,0,0">
@@ -251,7 +317,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableHeadRight"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border CornerRadius="0,5,0,0"
             Background="{DynamicResource ColorBrush5}"
             Padding="10,4"
@@ -261,7 +327,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBody"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Background="{DynamicResource ColorBrush6}">
         <Border BorderBrush="{DynamicResource ColorBrush8}"
                 Padding="10,4"
@@ -271,7 +337,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBodyMiddleLeft"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Background="{DynamicResource ColorBrush6}"
             BorderBrush="{DynamicResource ColorBrush4}"
             BorderThickness="1,0,0,0">
@@ -283,7 +349,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBodyMiddleRight"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Background="{DynamicResource ColorBrush6}"
             BorderBrush="{DynamicResource ColorBrush4}"
             BorderThickness="0,0,1,0">
@@ -295,7 +361,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBodyLeft"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border CornerRadius="0,0,0,5"
             Background="{DynamicResource ColorBrush6}"
             BorderBrush="{DynamicResource ColorBrush4}"
@@ -308,7 +374,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBodyBottom"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Background="{DynamicResource ColorBrush6}"
             BorderBrush="{DynamicResource ColorBrush4}"
             BorderThickness="0,0,0,1">
@@ -320,7 +386,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TableBodyRight"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border CornerRadius="0,0,5,0"
             Background="{DynamicResource ColorBrush6}"
             Padding="10,4"
@@ -330,7 +396,7 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="Quote"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Margin="0,3"
             CornerRadius="5"
             BorderBrush="{DynamicResource ColorBrush4}"
@@ -340,27 +406,49 @@
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="WarningQuote"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Margin="0,3"
             CornerRadius="5"
-            Background="#fad2cd"
             BorderBrush="#f0513c"
+            Background="{DynamicResource ColorBrush8}"
             BorderThickness="5,1,1,1">
-        <ContentPresenter/>
+        <Grid>
+            <Border Background="#f0513c"
+                    Opacity="0.5"/>
+            <ContentPresenter/>
+        </Grid>
     </Border>
 </ControlTemplate>
 <ControlTemplate x:Key="TipQuote"
-                 TargetType="ContentControl">
+        TargetType="ContentControl">
     <Border Margin="0,3"
             CornerRadius="5"
-            Background="#d1f3ff"
             BorderBrush="#62cbf1"
+            Background="{DynamicResource ColorBrush8}"
             BorderThickness="5,1,1,1">
-        <ContentPresenter/>
+        <Grid>
+            <Border Background="#62cbf1"
+                    Opacity="0.5"/>
+            <ContentPresenter/>
+        </Grid>
+    </Border>
+</ControlTemplate>
+<ControlTemplate x:Key="CustomQuote"
+        TargetType="ContentControl">
+    <Border Margin="0,3"
+            CornerRadius="5"
+            BorderBrush="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}"
+            Background="{DynamicResource ColorBrush8}"
+            BorderThickness="5,1,1,1">
+        <Grid>
+            <Border Background="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}"
+                    Opacity="0.5"/>
+            <ContentPresenter/>
+        </Grid>
     </Border>
 </ControlTemplate>
 <Style x:Key="Hr"
-       TargetType="Section">
+        TargetType="Section">
     <Setter Property="Margin"
             Value="0,10"/>
     <Setter Property="BorderThickness"
@@ -371,7 +459,7 @@
             Value="4"/>
 </Style>
 <Style x:Key="Hl"
-       TargetType="Section">
+        TargetType="Section">
     <Setter Property="Margin"
             Value="0,3"/>
     <Setter Property="BorderThickness"
@@ -380,66 +468,4 @@
             Value="{DynamicResource ColorBrush5}"/>
     <Setter Property="FontSize"
             Value="4"/>
-</Style>
-<Style x:Key="H1"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="24"/>
-    <Setter Property="Margin"
-            Value="0,10,0,0"/>
-    <Setter Property="FontWeight"
-            Value="Bold"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush3}"/>
-</Style>
-<Style x:Key="H2"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="22"/>
-    <Setter Property="Margin"
-            Value="0,10,0,0"/>
-    <Setter Property="FontWeight"
-            Value="Bold"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush3}"/>
-</Style>
-<Style x:Key="H3"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="18"/>
-    <Setter Property="Margin"
-            Value="0,10,0,0"/>
-    <Setter Property="FontWeight"
-            Value="Bold"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush4}"/>
-</Style>
-<Style x:Key="H4"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="16"/>
-    <Setter Property="Margin"
-            Value="0,10,0,0"/>
-    <Setter Property="FontWeight"
-            Value="Bold"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush4}"/>
-</Style>
-<Style x:Key="H5"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="14"/>
-    <Setter Property="Margin"
-            Value="0,8,0,0"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush4}"/>
-</Style>
-<Style x:Key="H6"
-       TargetType="Paragraph">
-    <Setter Property="FontSize"
-            Value="12"/>
-    <Setter Property="Margin"
-            Value="0,8,0,0"/>
-    <Setter Property="Foreground"
-            Value="{DynamicResource ColorBrush4}"/>
 </Style>

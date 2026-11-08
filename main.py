@@ -3,7 +3,7 @@ import re
 import logging
 import shutil
 import datetime
-import json
+import json, yaml
 import mistune
 import frontmatter
 from urllib.parse import quote, unquote
@@ -12,7 +12,6 @@ from typing import Any
 BASE_PATH = os.path.dirname(__file__)
 templates = {}
 entrance = False
-VERSION = 'v1.1.0-beta.1'
 
 create_markdown = lambda: mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
@@ -32,22 +31,25 @@ def escape_xaml(text, attr: dict = {}):
 
     return b
 
-def load_template(names, noxaml = False):
+def load_all_template():
     global templates
-    if not isinstance(names, list):
-        names = [names]
-    for n in names:
-        if n not in templates:
-            t_path = os.path.join(BASE_PATH, 'templates', n + ('' if noxaml else '.xaml'))
+    logging.info('开始加载模板')
+    templates = {}
+    templates_path = os.path.join(BASE_PATH, 'templates')
+    for root, dirs, files in os.walk(templates_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            name = os.path.relpath(file_path, templates_path)
+            if name.endswith('.xaml'):
+                name = name[:-len('.xaml')]
+            name = name.replace('\\', '/')
             try:
-                with open(t_path, 'r', encoding='utf-8') as f:
-                    templates[n] = f.read()
-            except FileNotFoundError:
-                logging.error(f'模板文件不存在: {t_path}')
-                exit()
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    templates[name] = f.read()
             except Exception as e:
-                logging.error(f'加载模板失败: {t_path}, 错误: {e}')
+                logging.error(f'加载模板失败: {file_path}, 错误: {e}')
                 exit()
+    logging.info(f'已加载 {len(templates)} 个模板')
 
 def replaces(string: str, s: dict):
     output = string
@@ -124,9 +126,12 @@ def load_contents():
             elif os.path.isdir(item_path):
                 if os.path.exists(os.path.join(item_path, '_config.json')):
                     with open(os.path.join(item_path, '_config.json'), 'r', encoding='utf-8') as f:
-                        doc_config = json.load(f)
+                        dir_config = json.load(f)
+                elif os.path.exists(os.path.join(item_path, '_config.yaml')):
+                    with open(os.path.join(item_path, '_config.yaml'), 'r', encoding='utf-8') as f:
+                        dir_config = yaml.safe_load(f) or {}
                 else:
-                    doc_config = {}
+                    dir_config = {}
                 if os.path.exists(os.path.join(contents_path, f'{item}', '_index.md')):
                     index_file = os.path.join(contents_path, f'{item}', '_index.md')
                 elif os.path.exists(os.path.join(contents_path, f'{item}.md')):
@@ -138,21 +143,22 @@ def load_contents():
                 else:
                     index_config = {}
                 output.append({
-                    'name': index_config.get('title', doc_config.get('name', format_item)),
+                    'name': (dirname := str(dir_config.get('name', format_item))),
                     'file': index_file if index_file else False,
-                    'folded': doc_config.get('folded', False) or doc_config.get('tiering', False),
-                    'visiable': doc_config.get('visiable', True),
-                    'sub': load_path(path+item+'/', docpath+str(index_config.get('title', doc_config.get('name', format_item)))+'/'),
-                    'index': index_config.get('index', doc_config.get('index', 0)),
-                    'tiering': doc_config.get('tiering', False),
-                    'tags': index_config.get('tags', doc_config.get('tags', [])),
+                    'category': (category := dir_config.get('category', False)),
+                    'folded': dir_config.get('folded', False) and not category,
+                    'visiable': dir_config.get('visiable', True) or category,
+                    'sub': load_path(path+item+'/', docpath+dirname+'/'),
+                    'index': dir_config.get('index', 0),
+                    'tiering': dir_config.get('tiering', False) and not category,
+                    'tags': index_config.get('tags', []) if not category else [],
                     'docpath': docpath
                 })
-                if not isinstance(doc_config.get('visiable', True), bool):
-                    logging.error(f'Visiable错误: {path+item}: {doc_config.get('visiable', True)}')
+                if not isinstance(dir_config.get('visiable', True), bool):
+                    logging.error(f'Visiable错误: {path+item}: {dir_config.get('visiable', True)}')
                     exit()
-                if not isinstance(doc_config.get('index', doc_config.get('index', 0)), int):
-                    logging.error(f'Index错误: {path+item}: {doc_config.get('index', doc_config.get('index', 0))}')
+                if not isinstance(dir_config.get('index', dir_config.get('index', 0)), int):
+                    logging.error(f'Index错误: {path+item}: {dir_config.get('index', dir_config.get('index', 0))}')
                     exit()
         return output
     def load_config():
@@ -201,7 +207,6 @@ def build_docs():
     shutil.rmtree(os.path.join(BASE_PATH, 'output'), ignore_errors=True)
     os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
     markdown = create_markdown()
-    load_template('page_resources')
 
     def replace_doc_template(raw: str):
         data = raw.splitlines()
@@ -235,21 +240,16 @@ def build_docs():
             match token['type']:
                 case 'linebreak':
                     t = f'body/para/lb'
-                    load_template(t)
                     para += templates[t]
                 case 'text':
                     if 'textattr' in attr:
                         style = ''
                         t = f'body/para/text/style_text'
-                        load_template(t)
                         if 'blod' in attr['textattr']:
-                            load_template(f'body/para/text/bold')
                             style += templates[f'body/para/text/bold']
                         if 'italic' in attr['textattr']:
-                            load_template(f'body/para/text/italic')
                             style += templates[f'body/para/text/italic']
                         if 'strikethrough' in attr['textattr']:
-                            load_template(f'body/para/text/strikethrough')
                             style += templates[f'body/para/text/strikethrough']
                         para += replaces(templates[t],{
                             'content': token['raw'],
@@ -273,7 +273,6 @@ def build_docs():
                        ['strikethrough']})
                 case 'codespan':
                     t = f'body/para/inlinecode'
-                    load_template(t)
                     para += replaces(templates[t],{
                         'content':escape_xaml(token['raw'][0])+escape_xaml(token['raw'][1:])
                     })
@@ -297,9 +296,8 @@ def build_docs():
                     # 黑幕
                     elif url.startswith('hidden!'):
                         t = f'body/para/hidden'
-                        load_template(t)
                         para += replaces(templates[t],{
-                            'content':data_to_text(token['children'])
+                            'content': analysis_para(token['children'], **attr)
                         })
                         continue
                     # 文档模板参数占位符
@@ -314,17 +312,10 @@ def build_docs():
                         if not ok:
                             para += escape_xaml(url[-1])
                         continue
-                    elif attr.get('footer') and url.startswith('attr!'):
-                        para += {
-                            'version': VERSION,
-                            'name': NAME,
-                        }.get(url[5:], '')
-                        continue
                     # 复制文本
                     else:
                         t = f'body/para/event_btn'
                         url = ['复制文本', url]
-                    load_template(t)
                     para += replaces(templates[t],{
                         'type':url[0],
                         'data':escape_xaml(url[1]),
@@ -332,7 +323,6 @@ def build_docs():
                     })
                 case 'image':
                     t = f'body/para/image'
-                    load_template(t)
                     url = token['attrs']['url']
                     if url.startswith('/'):
                         url = os.path.join(OUTPUT_URL, '.public', url[1:]).replace('\\', '/')
@@ -347,19 +337,16 @@ def build_docs():
             match token['type']:
                 case 'heading':
                     t = f'body/h{token['attrs']['level']}'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_para(token['children'], **attr)
                     })
                 case 'paragraph':
                     t = f'body/para'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_para(token['children'], **attr)
                     })
                 case 'block_text':
                     t = f'body/para'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_para(token['children'], **attr)
                     })
@@ -371,26 +358,29 @@ def build_docs():
                         elif token['children'][0]['children'][0].get('raw', '') == '[tip]':
                             token['children'][0]['children'].pop(0)
                             t = f'body/quote/tip'
+                        elif len(customcolor := re.findall(r"\[#([0-9a-fA-F]{6})\]", token['children'][0]['children'][0].get('raw', ''))) > 0:
+                            token['children'][0]['children'].pop(0)
+                            t = f'body/quote/custom'
                         else:
                             t = f'body/quote/main'
                     else:
                         t = f'body/quote/main'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_level(token['children'], **attr)
+                    })  if not t == f'body/quote/custom' else replaces(templates[t],{
+                        'content':analysis_level(token['children'], **attr),\
+                        'color': customcolor[0] # type: ignore
                     })
                 case 'list':
                     if token['attrs']['ordered']:
                         t = f'body/list/number_list'
                     else:
                         t = f'body/list'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'items':analysis_level(token['children'], **attr)
                     })
                 case 'list_item':
                     t = 'body/list/item'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_level(token['children'], **attr)
                     })
@@ -418,7 +408,6 @@ def build_docs():
                     if h_lang:
                         if token['attrs']['info'] == 'xaml' and token['raw'].startswith('<!-- pcl -->'):
                             t = f'body/source_code'
-                            load_template(t)
                             body += replaces(templates[t],{
                                 'content':token['raw']
                             })
@@ -429,7 +418,6 @@ def build_docs():
                         t = f'body/codeblock_lang'
                     else:
                         t = f'body/codeblock'
-                    load_template(t)
 
                     para_content = []
                     l = len(token['raw'].splitlines())
@@ -454,11 +442,9 @@ def build_docs():
                         })
                 case 'thematic_break':
                     t = f'body/hr'
-                    load_template(t)
                     body += templates[t]
                 case 'block_html':
                     t = f'body/para'
-                    load_template(t)
                     body += replaces(templates[t],{
                         'content':analysis_para([{
                             'raw': token['raw'],
@@ -471,7 +457,6 @@ def build_docs():
                         f'body/table/definitions/column',
                         f'body/table/definitions/row',
                     ]
-                    load_template(t)
 
                     t_head = {}
                     t_body = {}
@@ -499,7 +484,6 @@ def build_docs():
                             t = f'body/table/head/right'
                         else:
                             t = f'body/table/head/middle'
-                        load_template(t)
                         body += replaces(templates[t],{
                             'column-index':tokenindex-1,
                             'content':analysis_para(token['children'], **attr)
@@ -519,7 +503,6 @@ def build_docs():
                                 t = f'body/table/body/middleright'
                             else:
                                 t = f'body/table/body/middle'
-                        load_template(t)
                         body += replaces(templates[t],{
                             'column-index':tokenindex-1,
                             'row-index':attr.get('table_row'),
@@ -527,15 +510,11 @@ def build_docs():
                         })
         return body
     
-    def catalogue_xaml(doc_name, hold_name, path='', indent=0, cdata=base_catalogue, tiering=False, tiering_pname='', un_tiering_pname=None):
-        load_template('sidebar/item')
-        load_template('sidebar/item_hold')
-        load_template('sidebar/item_more')
-        load_template('sidebar/item_enter')
-        load_template('sidebar/item_hold_enter')
-        load_template('sidebar/item_return')
+    def catalogue_xaml(doc_name, hold_name, path='', indent: int|float =0, cdata=base_catalogue, tiering=False, tiering_pname='', un_tiering_pname=None):
         output = ''
-        sorted_content = sorted(cdata, key=lambda x: x['index'])
+        sorted_content = sorted(cdata, key=
+            lambda x: ((1 if x.get('sub') else 0), (1 if x.get('category') else 0), x['index'])
+        )
         if tiering:
             sorted_content.insert(0, {
                 'return': True
@@ -548,46 +527,53 @@ def build_docs():
                     'url': OUTPUT_URL+path+tiering_pname+'-surfacelayer.json',
                 })
             elif c.get('visiable') or path in hold_name:
-                if path+c['name'] == un_tiering_pname:
-                    output += replaces(templates['sidebar/item_hold_enter'],{
+                if c.get('category'):
+                    output += replaces(templates['sidebar/item_category'],{
                         'indent': indent * 20,
                         'name': c['name'],
                         'url': OUTPUT_URL+path+c['name']+'.json',
                     })
-                    continue
-                if path+c['name'] == hold_name:
-                    output += replaces(templates['sidebar/item_hold'],{
-                        'indent': indent * 20,
-                        'name': c['name'],
-                    })
                 else:
-                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
-                        output += replaces(templates['sidebar/item'],{
+                    if path+c['name'] == un_tiering_pname:
+                        output += replaces(templates['sidebar/item_hold_enter'],{
                             'indent': indent * 20,
                             'name': c['name'],
                             'url': OUTPUT_URL+path+c['name']+'.json',
                         })
+                        continue
+                    if path+c['name'] == hold_name:
+                        output += replaces(templates['sidebar/item_hold'],{
+                            'indent': indent * 20,
+                            'name': c['name'],
+                        })
                     else:
-                        if c.get('tiering'):
-                            output += replaces(templates['sidebar/item_enter'],{
+                        if not ((c.get('folded') or c.get('tiering')) and not (hold_name.startswith(path+c['name']+'/') or hold_name == path+c['name'])):
+                            output += replaces(templates['sidebar/item'],{
                                 'indent': indent * 20,
                                 'name': c['name'],
                                 'url': OUTPUT_URL+path+c['name']+'.json',
                             })
                         else:
-                            output += replaces(templates['sidebar/item_more'],{
-                                'indent': indent * 20,
-                                'name': c['name'],
-                                'url': OUTPUT_URL+path+c['name']+'.json',
-                            })
+                            if c.get('tiering'):
+                                output += replaces(templates['sidebar/item_enter'],{
+                                    'indent': indent * 20,
+                                    'name': c['name'],
+                                    'url': OUTPUT_URL+path+c['name']+'.json',
+                                })
+                            else:
+                                output += replaces(templates['sidebar/item_more'],{
+                                    'indent': indent * 20,
+                                    'name': c['name'],
+                                    'url': OUTPUT_URL+path+c['name']+'.json',
+                                })
                 if c.get('sub',[]):
-                    if not (c.get('folded') and not (hold_name.startswith(path+c['name']+'/') or (path+c['name'] == hold_name))):
-                        output += catalogue_xaml(doc_name, hold_name, path+c['name']+'/', indent+1, c['sub'], un_tiering_pname=un_tiering_pname)
+                    if not ((c.get('folded') or c.get('tiering')) and not (hold_name.startswith(path+c['name']+'/') or (path+c['name'] == hold_name))):
+                        output += catalogue_xaml(doc_name, hold_name, path+c['name']+'/', indent+(0.3 if c.get('category') else 1), c['sub'], un_tiering_pname=un_tiering_pname)
+                    if c.get('category'):
+                        output += templates['sidebar/item_category_bottom']
+                        
         return output
-    def tags_xaml(hold = None, up = []):
-        load_template('sidebar/tag')
-        load_template('sidebar/item')
-        load_template('sidebar/item_tag')
+    def tags_xaml(hold = None, up = [], tag_page=False):
         output = ''
         for t in list(doc_tags.keys()):
             if hold == t:
@@ -610,7 +596,7 @@ def build_docs():
                     })
         return replaces(templates['sidebar/tag'],{
             'tags': output
-        })
+        }) if not tag_page else output
     def footer_xaml(post = {}):
         if 'footer' in docconfig:
             return analysis_level(markdown(docconfig['footer']), footer=True, footerdata=post)
@@ -644,7 +630,6 @@ def build_docs():
             logging.info(f'生成文件: {namepath}{doc_name}')
             occupied_name.append(doc_name)
 
-            load_template('page')
             if content['file'] != False:
                 if 'file' not in content:
                     logging.error(f'contents 未引用文档: {content}')
@@ -660,7 +645,7 @@ def build_docs():
                 def subdoc(*a, **kwa):
                     def _(docdata, path=''):
                         sdoutput = []
-                        for sd in sorted(docdata.get('sub',[]), key=lambda x: x['index']):
+                        for sd in sorted(docdata.get('sub',[]), key=lambda x: ((1 if x.get('sub') else 0), (1 if x.get('category') else 0), x['index'])):
                             if sd['visiable']:
                                 sdoutput.append(f'- [{sd['name']}](jump!{quote(namepath+(doc_name+'/' if not content.get('mainpage') else '')+path+sd['name'])})')
                                 if 'sub' in sd:
@@ -713,7 +698,9 @@ def build_docs():
 
             page = replaces(templates['page'],{
                 'page_resources': templates['page_resources'],
-                'catalogue':page_catalogue,
+                'catalogue': replaces(templates['sidebar/catalogue'],{
+                    'catalogue': page_catalogue
+                }),
                 'tag':tags,
                 'body':body,
                 'name':NAME,
@@ -744,7 +731,8 @@ def build_docs():
             if content.get('tiering'):
                 un_tiering_catalogue_page = replaces(templates['page'],{
                     'page_resources': templates['page_resources'],
-                    'catalogue':catalogue_xaml(
+                    'catalogue': replaces(templates['sidebar/catalogue'],{
+                        'catalogue': catalogue_xaml(
                         doc_name if not content.get('mainpage') else '',
                         namepath+(doc_name if not content.get('mainpage') else ''), 
                         tiering=len(tiering_data) != 1,
@@ -752,7 +740,8 @@ def build_docs():
                         path=tiering_data[-2]['data'].get('docpath') if len(tiering_data) != 1 else '',
                         tiering_pname=tiering_data[-2]['pname'] if len(tiering_data) != 1 else '',
                         un_tiering_pname=content.get('docpath')+content.get('name')
-                    ),
+                    )
+                    }),
                     'tag':tags,
                     'body':body,
                     'name':NAME,
@@ -770,9 +759,8 @@ def build_docs():
                 tiering_data.pop()
                 tiering_level = False
     def analysis_tags():
-        load_template('page')
         for t in list(doc_tags.keys()):
-            os.makedirs('output/.tags', exist_ok=True)
+            os.makedirs(os.path.join(BASE_PATH, 'output', '.tags'), exist_ok=True)
             raw_data = '\n'.join((
                 f'# 标签 {t}',
                 f'',
@@ -787,7 +775,7 @@ def build_docs():
 
             page = replaces(templates['page'],{
                 'page_resources': templates['page_resources'],
-                'catalogue':catalogue_xaml('', ''),
+                'catalogue': '',
                 'tag':tags,
                 'body':body,
                 'name':NAME,
@@ -838,6 +826,7 @@ def main():
     os.makedirs(os.path.join(BASE_PATH, 'public'), exist_ok=True)
     os.makedirs(os.path.join(BASE_PATH, 'output'), exist_ok=True)
     load_config()
+    load_all_template()
     load_contents()
     build_docs()
 

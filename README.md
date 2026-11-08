@@ -12,13 +12,13 @@
 
 ## 特点
 
-- 通过markdown文件构建，方便快速
-- 嵌套目录+标签功能直观分类，简洁高效
-- 模板/扩展语法优化文档显示，优雅美观
+- 通过markdown语言创建文档，方便快速
+- 支持分层显示，直观高效
+- 文档模板、黑幕等扩展语法，满足各种编写需求
 
-## 使用
+## 使用指南
 
-[使用](https://github.com/wzyaeu/PCLCustomHelpBuilder/blob/main/docs/desc.md)
+[指南](https://github.com/wzyaeu/PCLCustomHelpBuilder/blob/main/docs/desc.md)
 
 ## 引用
 

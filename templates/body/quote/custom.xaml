@@ -1,0 +1,1 @@
+<BlockUIContainer><ContentControl Template="{StaticResource CustomQuote}" Tag="#{color}"><FlowDocumentScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden"><FlowDocument>{content}</FlowDocument></FlowDocumentScrollViewer></ContentControl></BlockUIContainer>

@@ -3,3 +3,4 @@ output/
 test/
 /config.json
 !docs/*
+__pycache__

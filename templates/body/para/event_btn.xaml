@@ -1,1 +1,14 @@
-<Underline><local:MyTextButton Margin="0,0,0,-3" EventType="{type}" EventData="{data}">{content}</local:MyTextButton></Underline>
+<Underline>
+    <Grid Margin="0,0,0,-3">
+        <TextBlock
+            Foreground="{DynamicResource ColorBrush1}">{content}</TextBlock>
+        <Border Style="{StaticResource LinkColorCover}">
+            <Grid>
+                <TextBlock
+                    Foreground="{DynamicResource ColorBrush3}">{content}</TextBlock>
+                <local:MyTextButton EventType="{type}"
+                                    EventData="{data}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Underline>

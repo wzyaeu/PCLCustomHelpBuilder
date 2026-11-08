@@ -1,0 +1,1 @@
+<local:MyCard Title="目录" Margin="5" CanSwap="True"> <StackPanel Margin="10,30,10,10">{catalogue}</StackPanel> </local:MyCard>
