@@ -2,6 +2,7 @@
 title: "介绍"
 entrance: true
 index: 0
+image: "logo.png"
 ---
 
 ```template

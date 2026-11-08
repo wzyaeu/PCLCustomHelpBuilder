@@ -1,0 +1,56 @@
+<Grid Margin="5">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Grid ClipToBounds="True">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Setter Property="MaxHeight"
+                        Value="200"/>
+
+                <Style.Triggers>
+                    <EventTrigger RoutedEvent="UIElement.MouseEnter">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation
+                                    Storyboard.TargetProperty="MaxHeight"
+                                    To="800"
+                                    Duration="0:0:1">
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+
+                    <EventTrigger RoutedEvent="UIElement.MouseLeave">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation
+                                    Storyboard.TargetProperty="MaxHeight"
+                                    To="200"
+                                    Duration="0:0:0.4">
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
+
+        <StackPanel>
+            <Viewbox StretchDirection="DownOnly">
+                <Grid VerticalAlignment="Center">
+                    <Border
+                        Background="Transparent"
+                        CornerRadius="5"
+                        ClipToBounds="True">
+                        <local:MyImage
+                            Source="{url}"
+                            Stretch="UniformToFill"
+                            HorizontalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Viewbox>
+        </StackPanel>
+    </Grid>
+</Grid>

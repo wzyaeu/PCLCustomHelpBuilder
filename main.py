@@ -12,6 +12,20 @@ from typing import Any
 BASE_PATH = os.path.dirname(__file__)
 templates = {}
 entrance = False
+ALLOW_CONFIG_EX = {
+    'json': {
+        'stream': json.load,
+        'text': json.loads,
+    },
+    'yaml': {
+        'stream': yaml.safe_load,
+        'text': yaml.safe_load,
+    },
+    'yml': {
+        'stream': yaml.safe_load,
+        'text': yaml.safe_load,
+    },
+}
 
 create_markdown = lambda: mistune.create_markdown(renderer='ast', plugins=['table','strikethrough'])
 
@@ -105,7 +119,8 @@ def load_contents():
                     'visiable': post.get('visiable', True),
                     'entrance': post.get('entrance', False),
                     'tags': post.get('tags', []),
-                    'index': post.get('index', 0)
+                    'index': post.get('index', 0),
+                    'image': post.get('image', None)
                 })
                 if not isinstance(post.get('visiable', True), bool):
                     logging.error(f'Visiable错误: {path+item}: {post.get('visiable', True)}')
@@ -124,14 +139,12 @@ def load_contents():
                         doc_tags[t] = []
                     doc_tags[t].append(docpath+post.get('title', format_item[:-3])) # type: ignore
             elif os.path.isdir(item_path):
-                if os.path.exists(os.path.join(item_path, '_config.json')):
-                    with open(os.path.join(item_path, '_config.json'), 'r', encoding='utf-8') as f:
-                        dir_config = json.load(f)
-                elif os.path.exists(os.path.join(item_path, '_config.yaml')):
-                    with open(os.path.join(item_path, '_config.yaml'), 'r', encoding='utf-8') as f:
-                        dir_config = yaml.safe_load(f) or {}
-                else:
-                    dir_config = {}
+                dir_config = {}
+                for allowex, func in ALLOW_CONFIG_EX.items():
+                    if os.path.exists(os.path.join(item_path, f'_config.{allowex}')):
+                        with open(os.path.join(item_path, f'_config.{allowex}'), 'r', encoding='utf-8') as f:
+                            dir_config = func['stream'](f)
+                            break
                 if os.path.exists(os.path.join(contents_path, f'{item}', '_index.md')):
                     index_file = os.path.join(contents_path, f'{item}', '_index.md')
                 elif os.path.exists(os.path.join(contents_path, f'{item}.md')):
@@ -139,9 +152,9 @@ def load_contents():
                 else:
                     index_file = None
                 if index_file:
-                    index_config = frontmatter.load(index_file).metadata
+                    index_post_config = frontmatter.load(index_file).metadata
                 else:
-                    index_config = {}
+                    index_post_config = {}
                 output.append({
                     'name': (dirname := str(dir_config.get('name', format_item))),
                     'file': index_file if index_file else False,
@@ -151,8 +164,9 @@ def load_contents():
                     'sub': load_path(path+item+'/', docpath+dirname+'/'),
                     'index': dir_config.get('index', 0),
                     'tiering': dir_config.get('tiering', False) and not category,
-                    'tags': index_config.get('tags', []) if not category else [],
-                    'docpath': docpath
+                    'tags': index_post_config.get('tags', []) if not category else [],
+                    'docpath': docpath,
+                    'image': index_post_config.get('image', None)
                 })
                 if not isinstance(dir_config.get('visiable', True), bool):
                     logging.error(f'Visiable错误: {path+item}: {dir_config.get('visiable', True)}')
@@ -160,6 +174,42 @@ def load_contents():
                 if not isinstance(dir_config.get('index', dir_config.get('index', 0)), int):
                     logging.error(f'Index错误: {path+item}: {dir_config.get('index', dir_config.get('index', 0))}')
                     exit()
+            elif os.path.isfile(item_path) and any([item.endswith(f'.docjump.{allowex}') for allowex in ALLOW_CONFIG_EX.keys()]):
+                docjump_config = {}
+                for allowex, func in ALLOW_CONFIG_EX.items():
+                    if item.endswith(f'.docjump.{allowex}'):
+                        with open(item_path, 'r', encoding='utf-8') as f:
+                            if item.endswith(f'.docjump.{allowex}'):
+                                docjump_config = func['stream'](f) or {}
+                                break
+                match docjump_config.get('type', ''):
+                    case 'doc':
+                        output.append({
+                            'docjump_name': docjump_config.get('name', item[:-13]),
+                            'docjump_type': '打开帮助',
+                            'docjump_data': OUTPUT_URL+docjump_config.get('data', ''),
+                            'isdoc': False,
+                            'notdoctype': 'docjump',
+                            'index': docjump_config.get('index', 0),
+                        })
+                    case 'web':
+                        output.append({
+                            'docjump_name': docjump_config.get('name', item[:-13]),
+                            'docjump_type': '打开网页',
+                            'docjump_data': docjump_config.get('data', ''),
+                            'isdoc': False,
+                            'notdoctype': 'docjump',
+                            'index': docjump_config.get('index', 0),
+                        })
+                    case _:
+                        output.append({
+                            'docjump_name': docjump_config.get('name', item[:-13]),
+                            'docjump_type': docjump_config.get('type', ''),
+                            'docjump_data': docjump_config.get('data', ''),
+                            'isdoc': False,
+                            'notdoctype': 'docjump',
+                            'index': docjump_config.get('index', 0),
+                        })
         return output
     def load_config():
         global docconfig
@@ -513,7 +563,7 @@ def build_docs():
     def catalogue_xaml(doc_name, hold_name, path='', indent: int|float =0, cdata=base_catalogue, tiering=False, tiering_pname='', un_tiering_pname=None):
         output = ''
         sorted_content = sorted(cdata, key=
-            lambda x: ((1 if x.get('sub') else 0), (1 if x.get('category') else 0), x['index'])
+            lambda x: ((1 if x.get('sub') else 0), (1 if x.get('category') else 0), x.get('index', 0))
         )
         if tiering:
             sorted_content.insert(0, {
@@ -526,6 +576,15 @@ def build_docs():
                     'name': '返回',
                     'url': OUTPUT_URL+path+tiering_pname+'-surfacelayer.json',
                 })
+            elif not c.get('isdoc', True):
+                match c.get('notdoctype'):
+                    case 'docjump':
+                        output += replaces(templates['sidebar/item_jump'],{
+                            'indent': indent * 20,
+                            'name': c.get('docjump_name'),
+                            'type': c.get('docjump_type'),
+                            'data': c.get('docjump_data'),
+                        })
             elif c.get('visiable') or path in hold_name:
                 if c.get('category'):
                     output += replaces(templates['sidebar/item_category'],{
@@ -619,6 +678,8 @@ def build_docs():
         }], key=lambda x: int(x.get('index', 0))):
             if content.get('mainpage') and entrance:
                 continue
+            if not content.get('isdoc', True):
+                continue
             doc_name = content['name']
             
             if doc_name in occupied_name:
@@ -629,6 +690,13 @@ def build_docs():
                 exit()
             logging.info(f'生成文件: {namepath}{doc_name}')
             occupied_name.append(doc_name)
+
+            # 头部
+            header = ''
+            if content.get('image'):
+                header += replaces(templates['body/header/image'], {
+                    'url': os.path.join(OUTPUT_URL, '.public', content.get('image'))
+                })
 
             if content['file'] != False:
                 if 'file' not in content:
@@ -702,6 +770,7 @@ def build_docs():
                     'catalogue': page_catalogue
                 }),
                 'tag':tags,
+                'header': header,
                 'body':body,
                 'name':NAME,
                 'footer':footer if footer else '',
@@ -743,6 +812,7 @@ def build_docs():
                     )
                     }),
                     'tag':tags,
+                    'header': header,
                     'body':body,
                     'name':NAME,
                     'footer':footer if footer else '',
